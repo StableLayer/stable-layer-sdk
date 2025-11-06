@@ -1,7 +1,11 @@
 {
-  "name": "@stable-layer/stable-layer-sdk",
-  "version": "1.0.0",
+  "name": "stable-layer-sdk",
+  "version": "0.0.1",
   "description": "A TypeScript SDK for Stable Layer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StableLayer/stable-layer-sdk"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
