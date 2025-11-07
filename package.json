@@ -30,5 +30,14 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@bucket-protocol/sdk": "1.0.5",
+    "@mysten/sui": "^1.44.0"
+  },
+  "peerDependencies": {
+    "@mysten/sui": "^1.44.0"
+  },
+  "resolutions": {
+    "@mysten/sui": "^1.44.0"
+  }
 }

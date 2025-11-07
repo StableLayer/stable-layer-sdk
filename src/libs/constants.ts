@@ -1,0 +1,34 @@
+export const USDC_TYPE =
+  "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
+
+export const LAKE_USDC_TYPE =
+  "0x4ed8031921667537139e53ae468db21a6345c5171b3ed7615f928bb986ff93a8::lake_usdc::LakeUSDC";
+
+export const BTC_USD_TYPE =
+  "0x67fa77df147ddd7ef83be5f77c0c90c5b930e84760bc39b5b9ea008b0dd7169e::btc_usd::BTC_USD";
+
+export const YUSDB_TYPE =
+  "0x6155ba594c89435570e40e4749b473543c7dc3431ea4c80da68d36a28919fd3a::yesusdb::YESUSDB";
+
+export const SAVING_TYPE =
+  "0x38f61c75fa8407140294c84167dd57684580b55c3066883b48dedc344b1cde1e::susdb::SUSDB";
+
+export const LAKE_USD_FARM_TYPE = `0x1133f36a8d2a7aff2b516b74dbf00b652ee59d700d21dd6f31d8117a14ea1e6b::lake_usd_farm::LakeUsdFarmEntity<${LAKE_USDC_TYPE}, ${USDC_TYPE}>`;
+
+export const STABLE_LAYER_PACKAGE_ID =
+  "0xd2599c296594f62d19bcf023e34c13783371706e2d3729fc13715ccde861cf97";
+
+export const LAKE_FARM_PACKAGE_ID =
+  "0x9d88280d4d7e5c723c2d6328e812b1b34707770a04864046afa0f72d6192dc18";
+
+export const STABLE_FACTORY =
+  "0xacf9484938289edf8f4f68f21ed3712b3fe48bde9ec91339bb4c955b9b67cd96";
+
+export const LAKE_USDC_VAULT =
+  "0x3f00c926303d08f58177782baf9a7ce85be2dbc31b08d03e40a90dc3e3acd898";
+
+export const YIELD_VAULT =
+  "0x2efd894c4ab28eb17e8317fe670cceea4ac04fd89b1203677b62630a58ee8106";
+
+export const LAKE_USDC_FARM =
+  "0xe7d0b671a4872a5091d748c0d88df2f4da65a0f1f07662b9109215a6cb9d12f0";
