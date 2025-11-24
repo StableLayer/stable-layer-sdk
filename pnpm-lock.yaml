@@ -14,6 +14,9 @@ importers:
       '@bucket-protocol/sdk':
         specifier: 1.0.7
         version: 1.0.7(axios@1.13.2)(typescript@5.9.3)
+      '@mysten/bcs':
+        specifier: ^1.9.2
+        version: 1.9.2
       '@mysten/sui':
         specifier: ^1.44.0
         version: 1.44.0(typescript@5.9.3)
