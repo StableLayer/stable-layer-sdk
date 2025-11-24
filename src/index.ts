@@ -12,6 +12,7 @@ import {
   MintTransactionParams,
   BurnTransactionParams,
   ClaimTransactionParams,
+  StableCoinType,
 } from "./interface";
 import { release } from "./generated/yield_usdb/yield_usdb";
 import {
@@ -24,6 +25,7 @@ import {
   pay,
   receive,
 } from "./generated/stable_vault_farm/stable_vault_farm";
+import { STABLE_REGISTRY } from "./libs/constants";
 
 export class StableLayerSDK {
   private bucketClient: BucketClient;
@@ -239,6 +241,31 @@ export class StableLayerSDK {
       | undefined;
 
     return BigInt(content?.fields?.total_supply ?? "0");
+  }
+
+  async getTotalSupplyByCoinName(coinName: StableCoinType): Promise<bigint> {
+    const result = await this.suiClient.getDynamicFieldObject({
+      parentId: STABLE_REGISTRY,
+      name: {
+        type: "0x1::type_name::TypeName",
+        value: constants.STABLE_COIN_TYPES[coinName],
+      },
+    });
+    const content = result.data?.content as
+      | {
+          fields: {
+            treasury_cap: {
+              fields: {
+                total_supply: { fields: { value: string } };
+              };
+            };
+          };
+        }
+      | undefined;
+    return BigInt(
+      content?.fields?.treasury_cap?.fields?.total_supply?.fields?.value ??
+        BigInt(0)
+    );
   }
 
   private getBucketSavingPool(tx: Transaction) {
