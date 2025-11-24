@@ -8,11 +8,19 @@ import * as object from './deps/sui/object.js';
 import * as sheet from './deps/bucket_v2_framework/sheet.js';
 import * as table from './deps/sui/table.js';
 import * as balance from './deps/sui/balance.js';
-const $moduleName = '@local-pkg/lake_usd_farm.move::lake_usd_farm';
-export const LakeUsdFarmEntity = new MoveStruct({ name: `${$moduleName}::LakeUsdFarmEntity`, fields: {
+const $moduleName = '@local-pkg/stable_vault_farm.move::stable_vault_farm';
+export const Claim = new MoveStruct({ name: `${$moduleName}::Claim`, fields: {
+        reward_type: bcs.string(),
+        amount: bcs.u64(),
+        claimer: bcs.Address
+    } });
+export const StableVaultFarmEntity = new MoveStruct({ name: `${$moduleName}::StableVaultFarmEntity`, fields: {
         dummy_field: bcs.bool()
     } });
-export const LakeUsdFarm = new MoveStruct({ name: `${$moduleName}::LakeUsdFarm`, fields: {
+export const StableVaultFarmWitness = new MoveStruct({ name: `${$moduleName}::StableVaultFarmWitness`, fields: {
+        dummy_field: bcs.bool()
+    } });
+export const StableVaultFarm = new MoveStruct({ name: `${$moduleName}::StableVaultFarm`, fields: {
         id: object.UID,
         sheet: sheet.Sheet,
         yield_table: table.Table,
@@ -37,15 +45,15 @@ export interface NewOptions {
     ];
 }
 export function _new(options: NewOptions) {
-    const packageAddress = options.package ?? '@local-pkg/lake_usd_farm.move';
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
     const argumentsTypes = [
-        `${packageAddress}::lake_usd_farm::AdminCap`,
+        `${packageAddress}::stable_vault_farm::AdminCap`,
         `0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<${options.typeArguments[1]}>`
     ] satisfies string[];
     const parameterNames = ["Cap", "initUCoin"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
-        module: 'lake_usd_farm',
+        module: 'stable_vault_farm',
         function: 'new',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
         typeArguments: options.typeArguments
@@ -67,15 +75,15 @@ export interface DefaultOptions {
     ];
 }
 export function _default(options: DefaultOptions) {
-    const packageAddress = options.package ?? '@local-pkg/lake_usd_farm.move';
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
     const argumentsTypes = [
-        `${packageAddress}::lake_usd_farm::AdminCap`,
+        `${packageAddress}::stable_vault_farm::AdminCap`,
         `0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<${options.typeArguments[1]}>`
     ] satisfies string[];
     const parameterNames = ["cap", "initUCoin"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
-        module: 'lake_usd_farm',
+        module: 'stable_vault_farm',
         function: 'default',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
         typeArguments: options.typeArguments
@@ -112,14 +120,14 @@ export interface ReceiveOptions {
     ];
 }
 export function receive(options: ReceiveOptions) {
-    const packageAddress = options.package ?? '@local-pkg/lake_usd_farm.move';
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
     const argumentsTypes = [
-        `${packageAddress}::lake_usd_farm::LakeUsdFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
-        `${packageAddress}::sheet::Loan<${options.typeArguments[1]}, ${packageAddress}::stable_factory::StableFactoryEntity<${options.typeArguments[2]}, ${options.typeArguments[1]}>, ${packageAddress}::lake_usd_farm::LakeUsdFarmEntity<${options.typeArguments[0]}, ${options.typeArguments[1]}>>`,
-        `${packageAddress}::stable_vault::StableVault<${options.typeArguments[0]}, ${options.typeArguments[1]}, ${options.typeArguments[4]}>`,
+        `${packageAddress}::stable_vault_farm::StableVaultFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
+        `${packageAddress}::sheet::Loan<${options.typeArguments[1]}, ${packageAddress}::stable_layer::StableFactoryEntity<${options.typeArguments[2]}, ${options.typeArguments[1]}>, ${packageAddress}::stable_vault_farm::StableVaultFarmEntity<${options.typeArguments[0]}, ${options.typeArguments[1]}>>`,
+        `${packageAddress}::stable_vault::StableVault<${options.typeArguments[0]}, ${options.typeArguments[1]}, ${options.typeArguments[3]}>`,
         `${packageAddress}::usdb::Treasury`,
         `${packageAddress}::pool::Pool<${options.typeArguments[1]}>`,
-        `${packageAddress}::saving::SavingPool<${options.typeArguments[3]}>`,
+        `${packageAddress}::saving::SavingPool<${options.typeArguments[4]}>`,
         `${packageAddress}::yield_usdb::YieldVault<${options.typeArguments[3]}, ${options.typeArguments[4]}>`,
         `${packageAddress}::result::PriceResult<${options.typeArguments[1]}>`,
         '0x0000000000000000000000000000000000000000000000000000000000000002::clock::Clock'
@@ -127,7 +135,7 @@ export function receive(options: ReceiveOptions) {
     const parameterNames = ["farm", "loan", "stableVault", "usdbTreasury", "psmPool", "savingPool", "yieldVault", "uPrice"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
-        module: 'lake_usd_farm',
+        module: 'stable_vault_farm',
         function: 'receive',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
         typeArguments: options.typeArguments
@@ -164,14 +172,14 @@ export interface PayOptions {
     ];
 }
 export function pay(options: PayOptions) {
-    const packageAddress = options.package ?? '@local-pkg/lake_usd_farm.move';
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
     const argumentsTypes = [
-        `${packageAddress}::lake_usd_farm::LakeUsdFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
-        `${packageAddress}::sheet::Request<${options.typeArguments[1]}, ${packageAddress}::stable_factory::StableFactoryEntity<${options.typeArguments[2]}, ${options.typeArguments[1]}>>`,
-        `${packageAddress}::stable_vault::StableVault<${options.typeArguments[0]}, ${options.typeArguments[1]}, ${options.typeArguments[4]}>`,
+        `${packageAddress}::stable_vault_farm::StableVaultFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
+        `${packageAddress}::sheet::Request<${options.typeArguments[1]}, ${packageAddress}::stable_layer::StableFactoryEntity<${options.typeArguments[2]}, ${options.typeArguments[1]}>>`,
+        `${packageAddress}::stable_vault::StableVault<${options.typeArguments[0]}, ${options.typeArguments[1]}, ${options.typeArguments[3]}>`,
         `${packageAddress}::usdb::Treasury`,
         `${packageAddress}::pool::Pool<${options.typeArguments[1]}>`,
-        `${packageAddress}::saving::SavingPool<${options.typeArguments[3]}>`,
+        `${packageAddress}::saving::SavingPool<${options.typeArguments[4]}>`,
         `${packageAddress}::yield_usdb::YieldVault<${options.typeArguments[3]}, ${options.typeArguments[4]}>`,
         `${packageAddress}::result::PriceResult<${options.typeArguments[1]}>`,
         '0x0000000000000000000000000000000000000000000000000000000000000002::clock::Clock'
@@ -179,7 +187,7 @@ export function pay(options: PayOptions) {
     const parameterNames = ["farm", "request", "stableVault", "usdbTreasury", "psmPool", "savingPool", "yieldVault", "uPrice"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
-        module: 'lake_usd_farm',
+        module: 'stable_vault_farm',
         function: 'pay',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
         typeArguments: options.typeArguments
@@ -187,27 +195,21 @@ export function pay(options: PayOptions) {
 }
 export interface ClaimArguments {
     farm: RawTransactionArgument<string>;
-    stableFactory: RawTransactionArgument<string>;
-    accountRequest: RawTransactionArgument<string>;
+    stableRegistry: RawTransactionArgument<string>;
     stableVault: RawTransactionArgument<string>;
     usdbTreasury: RawTransactionArgument<string>;
-    psmPool: RawTransactionArgument<string>;
     savingPool: RawTransactionArgument<string>;
     yieldVault: RawTransactionArgument<string>;
-    uPrice: RawTransactionArgument<string>;
 }
 export interface ClaimOptions {
     package?: string;
     arguments: ClaimArguments | [
         farm: RawTransactionArgument<string>,
-        stableFactory: RawTransactionArgument<string>,
-        accountRequest: RawTransactionArgument<string>,
+        stableRegistry: RawTransactionArgument<string>,
         stableVault: RawTransactionArgument<string>,
         usdbTreasury: RawTransactionArgument<string>,
-        psmPool: RawTransactionArgument<string>,
         savingPool: RawTransactionArgument<string>,
-        yieldVault: RawTransactionArgument<string>,
-        uPrice: RawTransactionArgument<string>
+        yieldVault: RawTransactionArgument<string>
     ];
     typeArguments: [
         string,
@@ -218,24 +220,88 @@ export interface ClaimOptions {
     ];
 }
 export function claim(options: ClaimOptions) {
-    const packageAddress = options.package ?? '@local-pkg/lake_usd_farm.move';
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
     const argumentsTypes = [
-        `${packageAddress}::lake_usd_farm::LakeUsdFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
-        `${packageAddress}::stable_factory::StableFactory<${options.typeArguments[2]}, ${options.typeArguments[1]}>`,
-        `${packageAddress}::account::AccountRequest`,
-        `${packageAddress}::stable_vault::StableVault<${options.typeArguments[0]}, ${options.typeArguments[1]}, ${options.typeArguments[4]}>`,
+        `${packageAddress}::stable_vault_farm::StableVaultFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
+        `${packageAddress}::stable_layer::StableRegistry`,
+        `${packageAddress}::stable_vault::StableVault<${options.typeArguments[0]}, ${options.typeArguments[1]}, ${options.typeArguments[3]}>`,
         `${packageAddress}::usdb::Treasury`,
-        `${packageAddress}::pool::Pool<${options.typeArguments[1]}>`,
-        `${packageAddress}::saving::SavingPool<${options.typeArguments[3]}>`,
+        `${packageAddress}::saving::SavingPool<${options.typeArguments[4]}>`,
         `${packageAddress}::yield_usdb::YieldVault<${options.typeArguments[3]}, ${options.typeArguments[4]}>`,
-        `${packageAddress}::result::PriceResult<${options.typeArguments[1]}>`,
         '0x0000000000000000000000000000000000000000000000000000000000000002::clock::Clock'
     ] satisfies string[];
-    const parameterNames = ["farm", "stableFactory", "accountRequest", "stableVault", "usdbTreasury", "psmPool", "savingPool", "yieldVault", "uPrice"];
+    const parameterNames = ["farm", "stableRegistry", "stableVault", "usdbTreasury", "savingPool", "yieldVault"];
     return (tx: Transaction) => tx.moveCall({
         package: packageAddress,
-        module: 'lake_usd_farm',
+        module: 'stable_vault_farm',
         function: 'claim',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+        typeArguments: options.typeArguments
+    });
+}
+export interface ClaimableAmountArguments {
+    farm: RawTransactionArgument<string>;
+    savingPool: RawTransactionArgument<string>;
+    yieldVault: RawTransactionArgument<string>;
+}
+export interface ClaimableAmountOptions {
+    package?: string;
+    arguments: ClaimableAmountArguments | [
+        farm: RawTransactionArgument<string>,
+        savingPool: RawTransactionArgument<string>,
+        yieldVault: RawTransactionArgument<string>
+    ];
+    typeArguments: [
+        string,
+        string,
+        string,
+        string,
+        string
+    ];
+}
+export function claimableAmount(options: ClaimableAmountOptions) {
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
+    const argumentsTypes = [
+        `${packageAddress}::stable_vault_farm::StableVaultFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
+        `${packageAddress}::saving::SavingPool<${options.typeArguments[4]}>`,
+        `${packageAddress}::yield_usdb::YieldVault<${options.typeArguments[3]}, ${options.typeArguments[4]}>`,
+        '0x0000000000000000000000000000000000000000000000000000000000000002::clock::Clock'
+    ] satisfies string[];
+    const parameterNames = ["farm", "savingPool", "yieldVault"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'stable_vault_farm',
+        function: 'claimable_amount',
+        arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
+        typeArguments: options.typeArguments
+    });
+}
+export interface AddSurplusArguments {
+    farm: RawTransactionArgument<string>;
+    coin: RawTransactionArgument<string>;
+}
+export interface AddSurplusOptions {
+    package?: string;
+    arguments: AddSurplusArguments | [
+        farm: RawTransactionArgument<string>,
+        coin: RawTransactionArgument<string>
+    ];
+    typeArguments: [
+        string,
+        string
+    ];
+}
+export function addSurplus(options: AddSurplusOptions) {
+    const packageAddress = options.package ?? '@local-pkg/stable_vault_farm.move';
+    const argumentsTypes = [
+        `${packageAddress}::stable_vault_farm::StableVaultFarm<${options.typeArguments[0]}, ${options.typeArguments[1]}>`,
+        `0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<${options.typeArguments[1]}>`
+    ] satisfies string[];
+    const parameterNames = ["farm", "coin"];
+    return (tx: Transaction) => tx.moveCall({
+        package: packageAddress,
+        module: 'stable_vault_farm',
+        function: 'add_surplus',
         arguments: normalizeMoveArguments(options.arguments, argumentsTypes, parameterNames),
         typeArguments: options.typeArguments
     });

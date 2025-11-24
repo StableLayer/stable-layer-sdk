@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@bucket-protocol/sdk':
-        specifier: 1.0.5
-        version: 1.0.5(axios@1.13.2)(typescript@5.9.3)
+        specifier: 1.0.7
+        version: 1.0.7(axios@1.13.2)(typescript@5.9.3)
       '@mysten/sui':
         specifier: ^1.44.0
         version: 1.44.0(typescript@5.9.3)
@@ -47,8 +47,8 @@ packages:
       graphql: ^15.5.0 || ^16.0.0 || ^17.0.0
       typescript: ^5.0.0
 
-  '@bucket-protocol/sdk@1.0.5':
-    resolution: {integrity: sha512-mrf97msZ1NRshFis2GxV+HT4QaX7l8//29K2WGqqxMsAlUU4yjtVAv/pz1qJ7NxiA4upVJvYtmJzuWBOt+mcog==}
+  '@bucket-protocol/sdk@1.0.7':
+    resolution: {integrity: sha512-SI3lQ+IC98A/7Dm4Xz9gwqocMGh8GlJszvDaV2upbhq308zu1X0nVYH/rSZ3ejbTFFsWycPka6KmnHCRJlcPBg==}
     engines: {node: '>=20', pnpm: '>=10'}
 
   '@esbuild/aix-ppc64@0.25.12':
@@ -778,7 +778,7 @@ snapshots:
       graphql: 16.12.0
       typescript: 5.9.3
 
-  '@bucket-protocol/sdk@1.0.5(axios@1.13.2)(typescript@5.9.3)':
+  '@bucket-protocol/sdk@1.0.7(axios@1.13.2)(typescript@5.9.3)':
     dependencies:
       '@mysten/bcs': 1.8.0
       '@mysten/sui': 1.44.0(typescript@5.9.3)

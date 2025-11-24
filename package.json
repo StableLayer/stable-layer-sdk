@@ -32,7 +32,7 @@
     "vitest": "^4.0.7"
   },
   "dependencies": {
-    "@bucket-protocol/sdk": "1.0.5",
+    "@bucket-protocol/sdk": "1.0.7",
     "@mysten/sui": "^1.44.0"
   },
   "peerDependencies": {
