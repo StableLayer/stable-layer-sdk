@@ -3,6 +3,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
 import { describe, it, expect, beforeAll } from "vitest";
 import * as constants from "./libs/constants";
+import { StableCoinType } from "./interface";
 
 const testConfig = {
   network: "mainnet" as const,
@@ -29,6 +30,7 @@ describe("StableLayerSDK", () => {
       const tx = new Transaction();
       const params = {
         tx,
+        coinName: "BTC_USD" as StableCoinType,
         amount: BigInt(10),
         sender: testConfig.sender,
       };
@@ -51,6 +53,7 @@ describe("StableLayerSDK", () => {
       const tx = new Transaction();
       const params = {
         tx,
+        coinName: "BTC_USD" as StableCoinType,
         sender: testConfig.sender,
       };
 
@@ -65,6 +68,7 @@ describe("StableLayerSDK", () => {
       const tx = new Transaction();
       const params = {
         tx,
+        coinName: "BTC_USD" as StableCoinType,
         amount: BigInt(10),
         sender: testConfig.sender,
       };
@@ -99,6 +103,7 @@ describe("StableLayerSDK", () => {
       const tx = new Transaction();
       const params = {
         tx,
+        coinName: "BTC_USD" as StableCoinType,
         all: true,
         sender: testConfig.sender,
       };
@@ -133,6 +138,7 @@ describe("StableLayerSDK", () => {
       const tx = new Transaction();
       const params = {
         tx,
+        coinName: "BTC_USD" as StableCoinType,
         sender: testConfig.sender,
       };
 

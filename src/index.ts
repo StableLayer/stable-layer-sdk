@@ -38,6 +38,7 @@ export class StableLayerSDK {
 
   async buildMintTx({
     tx,
+    coinName,
     amount,
     sender,
   }: MintTransactionParams): Promise<Transaction> {
@@ -59,7 +60,7 @@ export class StableLayerSDK {
         uCoin: usdcCoin,
       },
       typeArguments: [
-        constants.BTC_USD_TYPE,
+        constants.STABLE_COIN_TYPES[coinName],
         constants.USDC_TYPE,
         constants.STABLE_VAULT_FARM_ENTITY_TYPE,
       ],
@@ -74,7 +75,7 @@ export class StableLayerSDK {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.BTC_USD_TYPE,
+        constants.STABLE_COIN_TYPES[coinName],
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -99,6 +100,7 @@ export class StableLayerSDK {
 
   async buildBurnTx({
     tx,
+    coinName,
     amount,
     all,
     sender,
@@ -115,12 +117,12 @@ export class StableLayerSDK {
             (
               await this.suiClient.getBalance({
                 owner: sender ?? this.sender,
-                coinType: constants.BTC_USD_TYPE,
+                coinType: constants.STABLE_COIN_TYPES[coinName],
               })
             ).totalBalance
           )
         : amount!,
-      type: constants.BTC_USD_TYPE,
+      type: constants.STABLE_COIN_TYPES[coinName],
     })(tx);
 
     if (!btcUsdCoin) {
@@ -135,7 +137,10 @@ export class StableLayerSDK {
         registry: constants.STABLE_REGISTRY,
         stableCoin: btcUsdCoin,
       },
-      typeArguments: [constants.BTC_USD_TYPE, constants.USDC_TYPE],
+      typeArguments: [
+        constants.STABLE_COIN_TYPES[coinName],
+        constants.USDC_TYPE,
+      ],
     })(tx);
 
     const [uPrice] = await this.bucketClient.aggregatePrices(tx, {
@@ -157,7 +162,7 @@ export class StableLayerSDK {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.BTC_USD_TYPE,
+        constants.STABLE_COIN_TYPES[coinName],
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -171,7 +176,10 @@ export class StableLayerSDK {
         registry: constants.STABLE_REGISTRY,
         burnRequest,
       },
-      typeArguments: [constants.BTC_USD_TYPE, constants.USDC_TYPE],
+      typeArguments: [
+        constants.STABLE_COIN_TYPES[coinName],
+        constants.USDC_TYPE,
+      ],
     })(tx);
 
     tx.transferObjects([usdcCoin], sender ?? this.sender);
@@ -181,6 +189,7 @@ export class StableLayerSDK {
 
   async buildClaimTx({
     tx,
+    coinName,
     sender,
   }: ClaimTransactionParams): Promise<Transaction> {
     tx.setSender(sender ?? this.sender);
@@ -200,7 +209,7 @@ export class StableLayerSDK {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.BTC_USD_TYPE,
+        constants.STABLE_COIN_TYPES[coinName],
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -213,6 +222,25 @@ export class StableLayerSDK {
     return tx;
   }
 
+  async getTotalSupply(): Promise<bigint> {
+    const result = await this.suiClient.getObject({
+      id: constants.STABLE_REGISTRY,
+      options: {
+        showContent: true,
+      },
+    });
+
+    const content = result.data?.content as
+      | {
+          fields: {
+            total_supply: string;
+          };
+        }
+      | undefined;
+
+    return BigInt(content?.fields?.total_supply ?? "0");
+  }
+
   private getBucketSavingPool(tx: Transaction) {
     return this.bucketClient.savingPoolObj(tx, {
       lpType: constants.SAVING_TYPE,
@@ -223,12 +251,6 @@ export class StableLayerSDK {
     return this.bucketClient.psmPoolObj(tx, {
       coinType: constants.USDC_TYPE,
     });
-  }
-
-  private getBucketSavingPoolReward() {
-    return this.bucketClient.getSavingPoolObjectInfo({
-      lpType: constants.SAVING_TYPE,
-    }).reward;
   }
 
   private checkResponse({

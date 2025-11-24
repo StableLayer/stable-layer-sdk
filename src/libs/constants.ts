@@ -23,9 +23,6 @@ export const SAVING_TYPE =
 export const YIELD_VAULT =
   "0x0a7f6325253157cd437812fea0ceee9a6b96f2ec5eac410da6df39558ff3a4d1";
 
-export const BTC_USD_TYPE =
-  "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
-
 export const STABLE_REGISTRY =
   "0x213f4d584c0770f455bb98c94a4ee5ea9ddbc3d4ebb98a0ad6d093eb6da41642";
 
@@ -36,3 +33,13 @@ export const STABLE_VAULT_FARM =
 
 export const YIELD_USDB_PACKAGE_ID =
   "0x203eebc39442014a1b8180f3b8ed70143dac2c5d28ba5703fe34c21052728705";
+
+// Stable Coins
+export const BTC_USD_TYPE =
+  "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
+
+export type StableCoinType = "BTC_USD";
+
+export const STABLE_COIN_TYPES: Record<StableCoinType, string> = {
+  BTC_USD: BTC_USD_TYPE,
+};
