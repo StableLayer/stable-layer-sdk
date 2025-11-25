@@ -27,7 +27,7 @@ import {
 } from "./generated/stable_vault_farm/stable_vault_farm";
 import { STABLE_REGISTRY } from "./libs/constants";
 
-export class StableLayerSDK {
+export class StableLayerClient {
   private bucketClient: BucketClient;
   private suiClient: SuiClient;
   private sender: string;

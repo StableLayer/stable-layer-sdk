@@ -1,8 +1,7 @@
 import { Transaction } from "@mysten/sui/transactions";
-import { Network } from "@bucket-protocol/sdk";
 
 export interface StableLayerConfig {
-  network: Network;
+  network: "mainnet" | "testnet";
   sender: string;
 }
 

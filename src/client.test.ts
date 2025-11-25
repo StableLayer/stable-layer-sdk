@@ -1,4 +1,4 @@
-import { StableLayerSDK } from "./index";
+import { StableLayerClient } from "./index";
 import { Transaction } from "@mysten/sui/transactions";
 import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
 import { describe, it, expect, beforeAll } from "vitest";
@@ -11,17 +11,17 @@ const testConfig = {
 };
 
 describe("StableLayerSDK", () => {
-  let sdk: StableLayerSDK;
+  let sdk: StableLayerClient;
   let suiClient: SuiClient;
 
   beforeAll(() => {
-    sdk = new StableLayerSDK(testConfig);
+    sdk = new StableLayerClient(testConfig);
     suiClient = new SuiClient({ url: getFullnodeUrl("mainnet") });
   });
 
   describe("constructor", () => {
     it("should initialize with correct config", () => {
-      expect(sdk).toBeInstanceOf(StableLayerSDK);
+      expect(sdk).toBeInstanceOf(StableLayerClient);
     });
   });
 

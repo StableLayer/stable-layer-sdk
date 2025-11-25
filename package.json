@@ -6,6 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/StableLayer/stable-layer-sdk"
   },
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
