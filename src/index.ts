@@ -2,6 +2,7 @@ import {
   coinWithBalance,
   Transaction,
   TransactionArgument,
+  TransactionResult,
 } from "@mysten/sui/transactions";
 
 import * as constants from "./libs/constants.js";
@@ -12,6 +13,7 @@ import {
   BurnTransactionParams,
   ClaimTransactionParams,
   StableCoinType,
+  CoinResult,
 } from "./interface.js";
 import { release } from "./generated/yield_usdb/yield_usdb.js";
 import {
@@ -40,20 +42,12 @@ export class StableLayerClient {
 
   async buildMintTx({
     tx,
-    coinName,
-    amount,
+    lpToken,
+    usdcCoin,
     sender,
-  }: MintTransactionParams): Promise<Transaction> {
+    autoTransfer = true,
+  }: MintTransactionParams): Promise<CoinResult | undefined> {
     tx.setSender(sender ?? this.sender);
-
-    const usdcCoin = coinWithBalance({
-      balance: amount,
-      type: constants.USDC_TYPE,
-    });
-
-    if (!usdcCoin) {
-      throw new Error("No USDC found");
-    }
 
     const [stableCoin, loan] = mint({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -62,7 +56,7 @@ export class StableLayerClient {
         uCoin: usdcCoin,
       },
       typeArguments: [
-        constants.STABLE_COIN_TYPES[coinName],
+        constants.STABLE_COIN_TYPES[lpToken],
         constants.USDC_TYPE,
         constants.STABLE_VAULT_FARM_ENTITY_TYPE,
       ],
@@ -77,7 +71,7 @@ export class StableLayerClient {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.STABLE_COIN_TYPES[coinName],
+        constants.STABLE_COIN_TYPES[lpToken],
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -95,18 +89,22 @@ export class StableLayerClient {
 
     this.checkResponse({ tx, response: depositResponse, type: "deposit" });
 
-    tx.transferObjects([stableCoin], sender ?? this.sender);
-
-    return tx;
+    if (autoTransfer) {
+      tx.transferObjects([stableCoin], sender ?? this.sender);
+      return;
+    } else {
+      return stableCoin;
+    }
   }
 
   async buildBurnTx({
     tx,
-    coinName,
+    lpToken,
     amount,
     all,
     sender,
-  }: BurnTransactionParams): Promise<Transaction> {
+    autoTransfer = true,
+  }: BurnTransactionParams): Promise<CoinResult | undefined> {
     tx.setSender(sender ?? this.sender);
 
     if (!all && !amount) {
@@ -119,12 +117,12 @@ export class StableLayerClient {
             (
               await this.suiClient.getBalance({
                 owner: sender ?? this.sender,
-                coinType: constants.STABLE_COIN_TYPES[coinName],
+                coinType: constants.STABLE_COIN_TYPES[lpToken],
               })
             ).totalBalance
           )
         : amount!,
-      type: constants.STABLE_COIN_TYPES[coinName],
+      type: constants.STABLE_COIN_TYPES[lpToken],
     })(tx);
 
     if (!btcUsdCoin) {
@@ -140,7 +138,7 @@ export class StableLayerClient {
         stableCoin: btcUsdCoin,
       },
       typeArguments: [
-        constants.STABLE_COIN_TYPES[coinName],
+        constants.STABLE_COIN_TYPES[lpToken],
         constants.USDC_TYPE,
       ],
     })(tx);
@@ -164,7 +162,7 @@ export class StableLayerClient {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.STABLE_COIN_TYPES[coinName],
+        constants.STABLE_COIN_TYPES[lpToken],
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -179,21 +177,25 @@ export class StableLayerClient {
         burnRequest,
       },
       typeArguments: [
-        constants.STABLE_COIN_TYPES[coinName],
+        constants.STABLE_COIN_TYPES[lpToken],
         constants.USDC_TYPE,
       ],
     })(tx);
 
-    tx.transferObjects([usdcCoin], sender ?? this.sender);
-
-    return tx;
+    if (autoTransfer) {
+      tx.transferObjects([usdcCoin], sender ?? this.sender);
+      return;
+    } else {
+      return usdcCoin;
+    }
   }
 
   async buildClaimTx({
     tx,
-    coinName,
+    lpToken,
     sender,
-  }: ClaimTransactionParams): Promise<Transaction> {
+    autoTransfer = true,
+  }: ClaimTransactionParams): Promise<CoinResult | undefined> {
     tx.setSender(sender ?? this.sender);
 
     this.releaseRewards(tx);
@@ -211,7 +213,7 @@ export class StableLayerClient {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.STABLE_COIN_TYPES[coinName],
+        constants.STABLE_COIN_TYPES[lpToken],
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -219,12 +221,15 @@ export class StableLayerClient {
 
     this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
 
-    tx.transferObjects([rewardCoin], sender ?? this.sender);
-
-    return tx;
+    if (autoTransfer) {
+      tx.transferObjects([rewardCoin], sender ?? this.sender);
+      return;
+    } else {
+      return rewardCoin;
+    }
   }
 
-  async getTotalSupply(): Promise<bigint> {
+  async getTotalSupply(): Promise<string | undefined> {
     const result = await this.suiClient.getObject({
       id: constants.STABLE_REGISTRY,
       options: {
@@ -240,10 +245,12 @@ export class StableLayerClient {
         }
       | undefined;
 
-    return BigInt(content?.fields?.total_supply ?? "0");
+    return content?.fields?.total_supply;
   }
 
-  async getTotalSupplyByCoinName(coinName: StableCoinType): Promise<bigint> {
+  async getTotalSupplyByCoinName(
+    coinName: StableCoinType
+  ): Promise<string | undefined> {
     const result = await this.suiClient.getDynamicFieldObject({
       parentId: STABLE_REGISTRY,
       name: {
@@ -262,10 +269,7 @@ export class StableLayerClient {
           };
         }
       | undefined;
-    return BigInt(
-      content?.fields?.treasury_cap?.fields?.total_supply?.fields?.value ??
-        BigInt(0)
-    );
+    return content?.fields?.treasury_cap?.fields?.total_supply?.fields?.value;
   }
 
   private getBucketSavingPool(tx: Transaction) {

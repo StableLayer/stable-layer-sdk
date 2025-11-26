@@ -1,3 +1,5 @@
+import { StableCoinType } from "../interface";
+
 export const STABLE_VAULT =
   "0x65f38160110cd6859d05f338ff54b4f462883bb6f87c667a65c0fb0e537410a7";
 
@@ -38,8 +40,6 @@ export const YIELD_USDB_PACKAGE_ID =
 export const BTC_USD_TYPE =
   "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
 
-export type StableCoinType = "BTC_USD";
-
 export const STABLE_COIN_TYPES: Record<StableCoinType, string> = {
-  BTC_USD: BTC_USD_TYPE,
+  btcUSDC: BTC_USD_TYPE,
 };
