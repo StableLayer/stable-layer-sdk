@@ -1,6 +1,6 @@
 {
   "name": "stable-layer-sdk",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A TypeScript SDK for Stable Layer",
   "repository": {
     "type": "git",
