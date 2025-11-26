@@ -9,16 +9,16 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/types/index.d.ts",
       "require": "./dist/index.cjs",
       "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./*": {
-      "types": "./dist/*.d.ts",
+      "types": "./dist/types/*.d.ts",
       "require": "./dist/*.cjs",
       "import": "./dist/*.mjs",
       "default": "./dist/*.mjs"
