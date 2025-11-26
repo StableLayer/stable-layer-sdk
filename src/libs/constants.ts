@@ -1,4 +1,4 @@
-import { StableCoinType } from "../interface";
+import { StableCoinType } from "../interface.js";
 
 export const STABLE_VAULT =
   "0x65f38160110cd6859d05f338ff54b4f462883bb6f87c667a65c0fb0e537410a7";
