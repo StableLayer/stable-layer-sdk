@@ -37,10 +37,8 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
       - name: Bump & publish package
-        run: npm version ${{ inputs.versionBumpType }} --no-git-tag-version && npm publish
-        env:
-          NPM_CONFIG_PROVENANCE: true
+        run: npm version ${{ inputs.versionBumpType }} --no-git-tag-version && npm publish --provenance --access public
       - name: Commit change
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore: bump sdk version"

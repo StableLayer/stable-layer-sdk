@@ -1,9 +1,9 @@
-import { StableLayerClient } from "./index";
+import { StableLayerClient } from "./index.js";
 import { Transaction } from "@mysten/sui/transactions";
 import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
 import { describe, it, expect, beforeAll } from "vitest";
-import * as constants from "./libs/constants";
-import { StableCoinType } from "./interface";
+import * as constants from "./libs/constants.js";
+import { StableCoinType } from "./interface.js";
 
 const testConfig = {
   network: "mainnet" as const,
