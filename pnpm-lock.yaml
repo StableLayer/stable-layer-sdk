@@ -4,10 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@mysten/bcs': ^1.9.2
-  '@mysten/sui': ^1.44.0
-
 importers:
 
   .:
@@ -64,8 +60,8 @@ packages:
     resolution: {integrity: sha512-JogR2y2qTBtMIoahgdPMgEYk06DLYAZDDhD54HO20QYsniujohxqTAt7/AqaHmxBHEFnbyFQCqxlej5x093eKA==}
     engines: {node: '>=20', pnpm: '>=10'}
     peerDependencies:
-      '@mysten/bcs': ^1.9.2
-      '@mysten/sui': ^1.44.0
+      '@mysten/bcs': '>=1.8.0'
+      '@mysten/sui': '>=1.38.0'
 
   '@esbuild/aix-ppc64@0.25.12':
     resolution: {integrity: sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==}
