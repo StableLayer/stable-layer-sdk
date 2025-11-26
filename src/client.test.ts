@@ -1,9 +1,14 @@
 import { StableLayerClient } from "./index.js";
-import { Transaction } from "@mysten/sui/transactions";
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
 import { describe, it, expect, beforeAll } from "vitest";
 import * as constants from "./libs/constants.js";
-import { StableCoinType } from "./interface.js";
+import {
+  BurnTransactionParams,
+  ClaimTransactionParams,
+  MintTransactionParams,
+  StableCoinType,
+} from "./interface.js";
 
 const testConfig = {
   network: "mainnet" as const,
@@ -28,22 +33,25 @@ describe("StableLayerSDK", () => {
   describe("buildMintTx", () => {
     it("should build a valid mint transaction", async () => {
       const tx = new Transaction();
-      const params = {
+      const params: MintTransactionParams = {
         tx,
-        coinName: "BTC_USD" as StableCoinType,
         amount: BigInt(10),
         sender: testConfig.sender,
+        usdcCoin: coinWithBalance({
+          balance: BigInt(10),
+          type: constants.USDC_TYPE,
+        })(tx),
+        autoTransfer: false,
+        lpToken: "btcUSDC" as StableCoinType,
       };
 
-      const builtTx = await sdk.buildMintTx(params);
-      expect(builtTx).toBeInstanceOf(Transaction);
+      await sdk.buildMintTx(params);
 
       // Dev inspect the transaction to validate it's well-formed
       const result = await suiClient.devInspectTransactionBlock({
-        transactionBlock: builtTx,
+        transactionBlock: tx,
         sender: testConfig.sender,
       });
-
       // Should not have execution errors in the transaction structure
       expect(result.error).toBeUndefined();
       expect(result.effects.status.status).toBe("success");
@@ -51,9 +59,9 @@ describe("StableLayerSDK", () => {
 
     it("should throw error when neither amount nor all is provided for burn", async () => {
       const tx = new Transaction();
-      const params = {
+      const params: BurnTransactionParams = {
         tx,
-        coinName: "BTC_USD" as StableCoinType,
+        lpToken: "btcUSDC",
         sender: testConfig.sender,
       };
 
@@ -66,20 +74,19 @@ describe("StableLayerSDK", () => {
   describe("buildBurnTx", () => {
     it("should build a valid burn transaction with amount", async () => {
       const tx = new Transaction();
-      const params = {
+      const params: BurnTransactionParams = {
         tx,
-        coinName: "BTC_USD" as StableCoinType,
         amount: BigInt(10),
         sender: testConfig.sender,
+        lpToken: "btcUSDC" as StableCoinType,
       };
 
-      const builtTx = await sdk.buildBurnTx(params);
-      expect(builtTx).toBeInstanceOf(Transaction);
+      await sdk.buildBurnTx(params);
 
       // Dev inspect the transaction
       try {
         const result = await suiClient.devInspectTransactionBlock({
-          transactionBlock: builtTx,
+          transactionBlock: tx,
           sender: testConfig.sender,
         });
         expect(result.error).toBeUndefined();
@@ -101,19 +108,18 @@ describe("StableLayerSDK", () => {
 
     it("should build a valid burn transaction with all flag", async () => {
       const tx = new Transaction();
-      const params = {
+      const params: BurnTransactionParams = {
         tx,
-        coinName: "BTC_USD" as StableCoinType,
+        lpToken: "btcUSDC" as StableCoinType,
         all: true,
         sender: testConfig.sender,
       };
 
-      const builtTx = await sdk.buildBurnTx(params);
-      expect(builtTx).toBeInstanceOf(Transaction);
+      await sdk.buildBurnTx(params);
 
       try {
         const result = await suiClient.devInspectTransactionBlock({
-          transactionBlock: builtTx,
+          transactionBlock: tx,
           sender: testConfig.sender,
         });
         expect(result.error).toBeUndefined();
@@ -136,18 +142,17 @@ describe("StableLayerSDK", () => {
   describe("buildClaimTx", () => {
     it("should build a valid claim transaction", async () => {
       const tx = new Transaction();
-      const params = {
+      const params: ClaimTransactionParams = {
         tx,
-        coinName: "BTC_USD" as StableCoinType,
+        lpToken: "btcUSDC" as StableCoinType,
         sender: testConfig.sender,
       };
 
-      const builtTx = await sdk.buildClaimTx(params);
-      expect(builtTx).toBeInstanceOf(Transaction);
+      await sdk.buildClaimTx(params);
 
       // Dev inspect the transaction
       const result = await suiClient.devInspectTransactionBlock({
-        transactionBlock: builtTx,
+        transactionBlock: tx,
         sender: testConfig.sender,
       });
 
