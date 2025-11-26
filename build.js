@@ -33,28 +33,30 @@ async function runCommand(command) {
 async function build() {
   console.log("📦 Starting esbuild process...");
 
+  // Build CJS
   await esbuild.build({
     entryPoints: [entryPoint],
-    outfile: "dist/index.cjs",
+    outfile: "dist/cjs/index.cjs",
     bundle: true,
     platform: "node",
     format: "cjs",
     sourcemap: true,
     target: targetNode,
-    external: ["@mysten/sui", "@mysten/bcs"],
     logLevel: "info",
+    packages: "external",
   });
 
+  // Build ESM
   await esbuild.build({
     entryPoints: [entryPoint],
-    outfile: "dist/index.mjs",
+    outfile: "dist/esm/index.mjs",
     bundle: true,
     platform: "node",
     format: "esm",
     sourcemap: true,
     target: targetNode,
-    external: ["@mysten/sui", "@mysten/bcs"],
     logLevel: "info",
+    packages: "external",
   });
 
   await runCommand(`./node_modules/.bin/tsc -p ${TYPES_CONFIG}`);
