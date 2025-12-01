@@ -1,4 +1,4 @@
-import { Transaction, TransactionResult } from "@mysten/sui/transactions";
+import { Transaction, TransactionArgument, TransactionResult } from "@mysten/sui/transactions";
 
 export interface StableLayerConfig {
   network: "mainnet" | "testnet";
@@ -8,7 +8,7 @@ export interface StableLayerConfig {
 export interface MintTransactionParams {
   tx: Transaction;
   lpToken: StableCoinType;
-  usdcCoin: TransactionResult;
+  usdcCoin: TransactionArgument;
   amount: bigint;
   sender?: string;
   autoTransfer?: boolean;
@@ -32,9 +32,4 @@ export interface ClaimTransactionParams {
 
 export type StableCoinType = "btcUSDC";
 
-export type CoinResult =
-  | TransactionResult
-  | {
-      $kind: "NestedResult";
-      NestedResult: [number, number];
-    };
+export type CoinResult = TransactionResult | TransactionResult[number];
