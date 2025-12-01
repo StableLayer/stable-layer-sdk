@@ -110,7 +110,6 @@ export class StableLayerClient {
     if (!all && !amount) {
       throw new Error("Amount or all must be provided");
     }
-
     const btcUsdCoin = coinWithBalance({
       balance: all
         ? BigInt(
@@ -123,12 +122,7 @@ export class StableLayerClient {
           )
         : amount!,
       type: constants.STABLE_COIN_TYPES[lpToken],
-    })(tx);
-
-    if (!btcUsdCoin) {
-      throw new Error("No BTCUSD coin found");
-    }
-
+    });
     this.releaseRewards(tx);
 
     const burnRequest = requestBurn({
