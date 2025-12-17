@@ -16,7 +16,7 @@ export const STABLE_LAYER_PACKAGE_ID =
   "0x41e25d09e20cf3bc43fe321e51ef178fac419ae47b783a7161982158fc9f17d6";
 
 export const STABLE_VAULT_FARM_PACKAGE_ID =
-  "0xd5b9fb5a964fa9c274e07a788d7b6d36d8df1c73e2e6f795f8db852621470b70";
+  "0x00d31ddaa73a56abcc3e2d885ac1e1d90f9ae0e38bbef2ba2923550c8250de4d";
 
 // Bucket Protocol dependencies
 export const SAVING_TYPE =
