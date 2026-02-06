@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@bucket-protocol/sdk':
-        specifier: 1.1.4
-        version: 1.1.4(@mysten/bcs@1.9.2)(@mysten/sui@1.44.0(typescript@5.9.3))(axios@1.13.2)(typescript@5.9.3)
+        specifier: 1.2.5
+        version: 1.2.5(@mysten/bcs@1.9.2)(@mysten/sui@1.44.0(typescript@5.9.3))(axios@1.13.2)(typescript@5.9.3)
     devDependencies:
       '@mysten/bcs':
         specifier: ^1.9.2
@@ -56,8 +56,8 @@ packages:
       graphql: ^15.5.0 || ^16.0.0 || ^17.0.0
       typescript: ^5.0.0
 
-  '@bucket-protocol/sdk@1.1.4':
-    resolution: {integrity: sha512-JogR2y2qTBtMIoahgdPMgEYk06DLYAZDDhD54HO20QYsniujohxqTAt7/AqaHmxBHEFnbyFQCqxlej5x093eKA==}
+  '@bucket-protocol/sdk@1.2.5':
+    resolution: {integrity: sha512-aq4LwZeCcT9tkdLJcntp5xHZ3zD5d2trkiAYVR2YvfRIm0G6ZtNpV1MeZBEYTtH/sYGwZ7YHXEQmmu5XuWlkQw==}
     engines: {node: '>=20', pnpm: '>=10'}
     peerDependencies:
       '@mysten/bcs': '>=1.8.0'
@@ -1552,7 +1552,7 @@ snapshots:
       graphql: 16.12.0
       typescript: 5.9.3
 
-  '@bucket-protocol/sdk@1.1.4(@mysten/bcs@1.9.2)(@mysten/sui@1.44.0(typescript@5.9.3))(axios@1.13.2)(typescript@5.9.3)':
+  '@bucket-protocol/sdk@1.2.5(@mysten/bcs@1.9.2)(@mysten/sui@1.44.0(typescript@5.9.3))(axios@1.13.2)(typescript@5.9.3)':
     dependencies:
       '@mysten/bcs': 1.9.2
       '@mysten/sui': 1.44.0(typescript@5.9.3)

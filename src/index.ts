@@ -12,7 +12,6 @@ import {
   MintTransactionParams,
   BurnTransactionParams,
   ClaimTransactionParams,
-  StableCoinType,
   CoinResult,
 } from "./interface.js";
 import { release } from "./generated/yield_usdb/yield_usdb.js";
@@ -42,7 +41,7 @@ export class StableLayerClient {
 
   async buildMintTx({
     tx,
-    lpToken,
+    stableCoinType,
     usdcCoin,
     sender,
     autoTransfer = true,
@@ -56,7 +55,7 @@ export class StableLayerClient {
         uCoin: usdcCoin,
       },
       typeArguments: [
-        constants.STABLE_COIN_TYPES[lpToken],
+        stableCoinType,
         constants.USDC_TYPE,
         constants.STABLE_VAULT_FARM_ENTITY_TYPE,
       ],
@@ -71,7 +70,7 @@ export class StableLayerClient {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.STABLE_COIN_TYPES[lpToken],
+        stableCoinType,
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -99,7 +98,7 @@ export class StableLayerClient {
 
   async buildBurnTx({
     tx,
-    lpToken,
+    stableCoinType,
     amount,
     all,
     sender,
@@ -116,12 +115,12 @@ export class StableLayerClient {
             (
               await this.suiClient.getBalance({
                 owner: sender ?? this.sender,
-                coinType: constants.STABLE_COIN_TYPES[lpToken],
+                coinType: stableCoinType,
               })
-            ).totalBalance
+            ).totalBalance,
           )
         : amount!,
-      type: constants.STABLE_COIN_TYPES[lpToken],
+      type: stableCoinType,
     });
     this.releaseRewards(tx);
 
@@ -131,10 +130,7 @@ export class StableLayerClient {
         registry: constants.STABLE_REGISTRY,
         stableCoin: btcUsdCoin,
       },
-      typeArguments: [
-        constants.STABLE_COIN_TYPES[lpToken],
-        constants.USDC_TYPE,
-      ],
+      typeArguments: [stableCoinType, constants.USDC_TYPE],
     })(tx);
 
     const [uPrice] = await this.bucketClient.aggregatePrices(tx as any, {
@@ -156,7 +152,7 @@ export class StableLayerClient {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.STABLE_COIN_TYPES[lpToken],
+        stableCoinType,
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -170,10 +166,7 @@ export class StableLayerClient {
         registry: constants.STABLE_REGISTRY,
         burnRequest,
       },
-      typeArguments: [
-        constants.STABLE_COIN_TYPES[lpToken],
-        constants.USDC_TYPE,
-      ],
+      typeArguments: [stableCoinType, constants.USDC_TYPE],
     })(tx);
 
     if (autoTransfer) {
@@ -186,7 +179,7 @@ export class StableLayerClient {
 
   async buildClaimTx({
     tx,
-    lpToken,
+    stableCoinType,
     sender,
     autoTransfer = true,
   }: ClaimTransactionParams): Promise<CoinResult | undefined> {
@@ -207,7 +200,7 @@ export class StableLayerClient {
       typeArguments: [
         constants.STABLE_LP_TYPE,
         constants.USDC_TYPE,
-        constants.STABLE_COIN_TYPES[lpToken],
+        stableCoinType,
         constants.YUSDB_TYPE,
         constants.SAVING_TYPE,
       ],
@@ -242,14 +235,16 @@ export class StableLayerClient {
     return content?.fields?.total_supply;
   }
 
-  async getTotalSupplyByCoinName(
-    coinName: StableCoinType
+  async getTotalSupplyByCoinType(
+    stableCoinType: string,
   ): Promise<string | undefined> {
     const result = await this.suiClient.getDynamicFieldObject({
       parentId: STABLE_REGISTRY,
       name: {
         type: "0x1::type_name::TypeName",
-        value: constants.STABLE_COIN_TYPES[coinName],
+        value: {
+          name: stableCoinType.slice(2),
+        },
       },
     });
     const content = result.data?.content as

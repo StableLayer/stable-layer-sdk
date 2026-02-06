@@ -1,5 +1,3 @@
-import { StableCoinType } from "../interface.js";
-
 export const STABLE_VAULT =
   "0x65f38160110cd6859d05f338ff54b4f462883bb6f87c667a65c0fb0e537410a7";
 
@@ -13,7 +11,7 @@ export const YUSDB_TYPE =
   "0xac718b4b672d7f461fe7e86847166ff9c23cadba217397f0848a95bdea1f1051::yesusdb::YesUSDB";
 
 export const STABLE_LAYER_PACKAGE_ID =
-  "0x41e25d09e20cf3bc43fe321e51ef178fac419ae47b783a7161982158fc9f17d6";
+  "0xa4a78d8d3d1df62fb81d10068142e79b0d30ad4e3f578060487e36ed9ea764da";
 
 export const STABLE_VAULT_FARM_PACKAGE_ID =
   "0x00d31ddaa73a56abcc3e2d885ac1e1d90f9ae0e38bbef2ba2923550c8250de4d";
@@ -34,12 +32,4 @@ export const STABLE_VAULT_FARM =
   "0xe958b7d102b33bf3c09addb0e2cdff102ff2c93afe407ec5c2a541e8959a650c";
 
 export const YIELD_USDB_PACKAGE_ID =
-  "0x203eebc39442014a1b8180f3b8ed70143dac2c5d28ba5703fe34c21052728705";
-
-// Stable Coins
-export const BTC_USD_TYPE =
-  "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
-
-export const STABLE_COIN_TYPES: Record<StableCoinType, string> = {
-  btcUSDC: BTC_USD_TYPE,
-};
+  "0x3dcbf82f7e3b80ed65cee596612602a6c7e78c71fd40f6455b40ad033ed04786";
