@@ -1,8 +1,8 @@
-import * as esbuild from "esbuild";
-import path from "path";
-import { fileURLToPath } from "url";
 import { exec as nodeExec } from "node:child_process";
 import { promisify } from "node:util";
+import path from "path";
+import { fileURLToPath } from "url";
+import * as esbuild from "esbuild";
 
 const exec = promisify(nodeExec);
 

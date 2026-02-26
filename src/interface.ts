@@ -1,8 +1,4 @@
-import {
-  Transaction,
-  TransactionArgument,
-  TransactionResult,
-} from "@mysten/sui/transactions";
+import { Transaction, TransactionArgument, TransactionResult } from "@mysten/sui/transactions";
 
 export interface StableLayerConfig {
   network: "mainnet" | "testnet";

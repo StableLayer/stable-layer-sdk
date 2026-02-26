@@ -34,6 +34,7 @@ All build methods compose Sui `Transaction` objects using generated bindings. Th
 ### Generated Bindings (`src/generated/`)
 
 Auto-generated type-safe TypeScript wrappers for three Move packages:
+
 - `stable_layer/` — Core mint/burn operations
 - `stable_vault_farm/` — Vault farm deposit/withdraw/claim
 - `yield_usdb/` — Yield vault release
@@ -51,6 +52,7 @@ Config and parameter types: `StableLayerConfig`, `MintTransactionParams`, `BurnT
 ## Build Output
 
 `build.js` uses esbuild to produce:
+
 - `dist/cjs/index.cjs` — CommonJS bundle
 - `dist/esm/index.mjs` — ES Module bundle
 - `dist/types/` — TypeScript declarations (via `tsc` with `tsconfig.types.json`)
