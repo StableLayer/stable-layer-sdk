@@ -208,7 +208,7 @@ export class StableLayerClient {
       include: { json: true },
     });
 
-    const json = result.object.json as { total_supply?: string } | null;
+    const json = result.object?.json as { total_supply?: string } | null | undefined;
     return json?.total_supply ?? undefined;
   }
 
@@ -225,9 +225,10 @@ export class StableLayerClient {
       include: { json: true },
     });
 
-    const json = result.object.json as {
-      treasury_cap?: { total_supply?: { value?: string } };
-    } | null;
+    const json = result.object?.json as
+      | { treasury_cap?: { total_supply?: { value?: string } } }
+      | null
+      | undefined;
     return json?.treasury_cap?.total_supply?.value ?? undefined;
   }
 
