@@ -37,7 +37,9 @@
     "build:esbuild": "node build.js",
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
     "dev": "tsc --watch",
-    "test": "vitest"
+    "test": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "sdk",
@@ -47,21 +49,23 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@mysten/bcs": "^2.0.0",
+    "@mysten/sui": "^2.5.0",
     "@tsconfig/recommended": "^1.0.3",
     "@types/node": "^20.0.0",
     "esbuild": "^0.27.0",
     "npm-run-all": "^4.1.5",
+    "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.0.0",
-    "vitest": "^4.0.7",
-    "@mysten/bcs": "^1.9.2",
-    "@mysten/sui": "^1.44.0"
+    "vitest": "^4.0.7"
   },
   "dependencies": {
-    "@bucket-protocol/sdk": "1.2.5"
+    "@bucket-protocol/sdk": "2.0.0"
   },
   "peerDependencies": {
-    "@mysten/bcs": "^1.9.2",
-    "@mysten/sui": "^1.44.0"
+    "@mysten/bcs": ">=2.0.0",
+    "@mysten/sui": ">=2.0.0"
   }
 }
