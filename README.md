@@ -26,7 +26,7 @@ const client = new StableLayerClient({
 Deposit USDC to mint stablecoins. The SDK builds a transaction that mints via Stable Layer and deposits into the vault farm.
 
 ```typescript
-import { Transaction, coinWithBalance } from "@mysten/sui/transactions";
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 
 const tx = new Transaction();
 
@@ -96,9 +96,7 @@ await client.buildClaimTx({
 const totalSupply = await client.getTotalSupply();
 
 // Total supply for a specific coin type
-const btcUsdcSupply = await client.getTotalSupplyByCoinType(
-  "0x6d9fc...::btc_usdc::BtcUSDC",
-);
+const btcUsdcSupply = await client.getTotalSupplyByCoinType("0x6d9fc...::btc_usdc::BtcUSDC");
 ```
 
 ### Signing and Executing
@@ -106,14 +104,17 @@ const btcUsdcSupply = await client.getTotalSupplyByCoinType(
 All `build*` methods return a `Transaction` that you sign and execute with the Sui SDK:
 
 ```typescript
-import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
+import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 
-const suiClient = new SuiClient({ url: getFullnodeUrl("mainnet") });
+const suiClient = new SuiGrpcClient({
+  network: "mainnet",
+  baseUrl: "https://fullnode.mainnet.sui.io:443",
+});
 const keypair = Ed25519Keypair.fromSecretKey(YOUR_PRIVATE_KEY);
 
 const tx = new Transaction();
-await client.buildMintTx({ tx, /* ... */ });
+await client.buildMintTx({ tx /* ... */ });
 
 const result = await suiClient.signAndExecuteTransaction({
   transaction: tx,
@@ -125,21 +126,21 @@ const result = await suiClient.signAndExecuteTransaction({
 
 ### `new StableLayerClient(config)`
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `config.network` | `"mainnet" \| "testnet"` | Sui network |
-| `config.sender` | `string` | Default sender address |
+| Parameter        | Type                     | Description            |
+| ---------------- | ------------------------ | ---------------------- |
+| `config.network` | `"mainnet" \| "testnet"` | Sui network            |
+| `config.sender`  | `string`                 | Default sender address |
 
 ### Transaction Methods
 
 All methods accept a `tx` (Transaction) and optional `sender` to override the default. Set `autoTransfer: false` to get the resulting coin back instead of auto-transferring.
 
-| Method | Description |
-|--------|-------------|
-| `buildMintTx(params)` | Mint stablecoins from USDC |
-| `buildBurnTx(params)` | Burn stablecoins to redeem USDC |
-| `buildClaimTx(params)` | Claim yield farming rewards |
-| `getTotalSupply()` | Get total supply from registry |
+| Method                           | Description                               |
+| -------------------------------- | ----------------------------------------- |
+| `buildMintTx(params)`            | Mint stablecoins from USDC                |
+| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC           |
+| `buildClaimTx(params)`           | Claim yield farming rewards               |
+| `getTotalSupply()`               | Get total supply from registry            |
 | `getTotalSupplyByCoinType(type)` | Get total supply for a specific coin type |
 
 ## License
