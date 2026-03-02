@@ -2,11 +2,10 @@ import {
   coinWithBalance,
   Transaction,
   TransactionArgument,
-  TransactionResult,
 } from "@mysten/sui/transactions";
 
 import * as constants from "./libs/constants.js";
-import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
+import { bcs } from "@mysten/sui/bcs";
 import {
   StableLayerConfig,
   MintTransactionParams,
@@ -30,12 +29,12 @@ import { BucketClient } from "@bucket-protocol/sdk";
 
 export class StableLayerClient {
   private bucketClient: BucketClient;
-  private suiClient: SuiClient;
+  private suiClient: ReturnType<BucketClient["getSuiClient"]>;
   private sender: string;
 
   constructor(config: StableLayerConfig) {
     this.bucketClient = new BucketClient({ network: config.network });
-    this.suiClient = new SuiClient({ url: getFullnodeUrl(config.network) });
+    this.suiClient = this.bucketClient.getSuiClient();
     this.sender = config.sender;
   }
 
@@ -112,13 +111,13 @@ export class StableLayerClient {
     const btcUsdCoin = coinWithBalance({
       balance: all
         ? BigInt(
-            (
-              await this.suiClient.getBalance({
-                owner: sender ?? this.sender,
-                coinType: stableCoinType,
-              })
-            ).totalBalance,
-          )
+          (
+            await this.suiClient.getBalance({
+              owner: sender ?? this.sender,
+              coinType: stableCoinType,
+            })
+          ).balance.balance,
+        )
         : amount!,
       type: stableCoinType,
     });
@@ -218,47 +217,55 @@ export class StableLayerClient {
 
   async getTotalSupply(): Promise<string | undefined> {
     const result = await this.suiClient.getObject({
-      id: constants.STABLE_REGISTRY,
-      options: {
-        showContent: true,
+      objectId: constants.STABLE_REGISTRY,
+      include: {
+        json: true,
       },
     });
 
-    const content = result.data?.content as
+    const json = result.object.json as
       | {
-          fields: {
-            total_supply: string;
-          };
-        }
+        total_supply: string;
+      }
+      | null
       | undefined;
 
-    return content?.fields?.total_supply;
+    return json?.total_supply;
   }
 
   async getTotalSupplyByCoinType(
     stableCoinType: string,
   ): Promise<string | undefined> {
-    const result = await this.suiClient.getDynamicFieldObject({
-      parentId: STABLE_REGISTRY,
+    // TypeName struct: { name: String }
+    const typeNameBcs = bcs.struct("TypeName", {
+      name: bcs.String,
+    });
+
+    const result = await this.suiClient.getDynamicField({
+      parentId: constants.STABLE_REGISTRY,
       name: {
         type: "0x1::type_name::TypeName",
-        value: {
-          name: stableCoinType.slice(2),
-        },
+        bcs: typeNameBcs.serialize({ name: stableCoinType.slice(2) }).toBytes(),
       },
     });
-    const content = result.data?.content as
+
+    const fieldResult = await this.suiClient.getObject({
+      objectId: result.dynamicField.fieldId,
+      include: { json: true },
+    });
+
+    const json = fieldResult.object.json as
       | {
-          fields: {
-            treasury_cap: {
-              fields: {
-                total_supply: { fields: { value: string } };
-              };
-            };
+        value: {
+          treasury_cap: {
+            total_supply: { value: string };
           };
-        }
+        };
+      }
+      | null
       | undefined;
-    return content?.fields?.treasury_cap?.fields?.total_supply?.fields?.value;
+
+    return json?.value?.treasury_cap?.total_supply?.value;
   }
 
   private getBucketSavingPool(tx: Transaction) {
