@@ -1,41 +1,31 @@
-import {
-  coinWithBalance,
-  Transaction,
-  TransactionArgument,
-  TransactionResult,
-} from "@mysten/sui/transactions";
+import { BucketClient } from "@bucket-protocol/sdk";
+import { bcs } from "@mysten/sui/bcs";
+import { SuiGrpcClient } from "@mysten/sui/grpc";
+import { coinWithBalance, Transaction, TransactionArgument } from "@mysten/sui/transactions";
 
-import * as constants from "./libs/constants.js";
-import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
+import { fulfillBurn, mint, requestBurn } from "./generated/stable_layer/stable_layer.js";
+import { claim, pay, receive } from "./generated/stable_vault_farm/stable_vault_farm.js";
+import { release } from "./generated/yield_usdb/yield_usdb.js";
 import {
-  StableLayerConfig,
-  MintTransactionParams,
   BurnTransactionParams,
   ClaimTransactionParams,
   CoinResult,
+  MintTransactionParams,
+  StableLayerConfig,
 } from "./interface.js";
-import { release } from "./generated/yield_usdb/yield_usdb.js";
-import {
-  fulfillBurn,
-  mint,
-  requestBurn,
-} from "./generated/stable_layer/stable_layer.js";
-import {
-  claim,
-  pay,
-  receive,
-} from "./generated/stable_vault_farm/stable_vault_farm.js";
-import { STABLE_REGISTRY } from "./libs/constants.js";
-import { BucketClient } from "@bucket-protocol/sdk";
+import * as constants from "./libs/constants.js";
 
 export class StableLayerClient {
   private bucketClient: BucketClient;
-  private suiClient: SuiClient;
+  private suiClient: SuiGrpcClient;
   private sender: string;
 
   constructor(config: StableLayerConfig) {
     this.bucketClient = new BucketClient({ network: config.network });
-    this.suiClient = new SuiClient({ url: getFullnodeUrl(config.network) });
+    this.suiClient = new SuiGrpcClient({
+      network: config.network,
+      baseUrl: `https://fullnode.${config.network}.sui.io:443`,
+    });
     this.sender = config.sender;
   }
 
@@ -54,14 +44,10 @@ export class StableLayerClient {
         registry: constants.STABLE_REGISTRY,
         uCoin: usdcCoin,
       },
-      typeArguments: [
-        stableCoinType,
-        constants.USDC_TYPE,
-        constants.STABLE_VAULT_FARM_ENTITY_TYPE,
-      ],
+      typeArguments: [stableCoinType, constants.USDC_TYPE, constants.STABLE_VAULT_FARM_ENTITY_TYPE],
     })(tx);
 
-    const [uPrice] = await this.bucketClient.aggregatePrices(tx as any, {
+    const [uPrice] = await this.bucketClient.aggregatePrices(tx, {
       coinTypes: [constants.USDC_TYPE],
     });
 
@@ -78,7 +64,7 @@ export class StableLayerClient {
         farm: constants.STABLE_VAULT_FARM,
         loan,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx as any),
+        usdbTreasury: this.bucketClient.treasury(tx),
         psmPool: this.getBucketPSMPool(tx),
         savingPool: this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
@@ -117,7 +103,7 @@ export class StableLayerClient {
                 owner: sender ?? this.sender,
                 coinType: stableCoinType,
               })
-            ).totalBalance,
+            ).balance.balance,
           )
         : amount!,
       type: stableCoinType,
@@ -133,7 +119,7 @@ export class StableLayerClient {
       typeArguments: [stableCoinType, constants.USDC_TYPE],
     })(tx);
 
-    const [uPrice] = await this.bucketClient.aggregatePrices(tx as any, {
+    const [uPrice] = await this.bucketClient.aggregatePrices(tx, {
       coinTypes: [constants.USDC_TYPE],
     });
 
@@ -143,7 +129,7 @@ export class StableLayerClient {
         farm: constants.STABLE_VAULT_FARM,
         request: burnRequest,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx as any),
+        usdbTreasury: this.bucketClient.treasury(tx),
         psmPool: this.getBucketPSMPool(tx),
         savingPool: this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
@@ -193,7 +179,7 @@ export class StableLayerClient {
         stableRegistry: constants.STABLE_REGISTRY,
         farm: constants.STABLE_VAULT_FARM,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx as any),
+        usdbTreasury: this.bucketClient.treasury(tx),
         savingPool: this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
       },
@@ -218,57 +204,42 @@ export class StableLayerClient {
 
   async getTotalSupply(): Promise<string | undefined> {
     const result = await this.suiClient.getObject({
-      id: constants.STABLE_REGISTRY,
-      options: {
-        showContent: true,
-      },
+      objectId: constants.STABLE_REGISTRY,
+      include: { json: true },
     });
 
-    const content = result.data?.content as
-      | {
-          fields: {
-            total_supply: string;
-          };
-        }
-      | undefined;
-
-    return content?.fields?.total_supply;
+    const json = result.object?.json as { total_supply?: string } | null | undefined;
+    return json?.total_supply ?? undefined;
   }
 
-  async getTotalSupplyByCoinType(
-    stableCoinType: string,
-  ): Promise<string | undefined> {
-    const result = await this.suiClient.getDynamicFieldObject({
-      parentId: STABLE_REGISTRY,
+  async getTotalSupplyByCoinType(stableCoinType: string): Promise<string | undefined> {
+    const TypeName = bcs.struct("TypeName", { name: bcs.string() });
+    const nameBcs = TypeName.serialize({ name: stableCoinType.slice(2) }).toBytes();
+
+    const result = await this.suiClient.core.getDynamicObjectField({
+      parentId: constants.STABLE_REGISTRY,
       name: {
         type: "0x1::type_name::TypeName",
-        value: {
-          name: stableCoinType.slice(2),
-        },
+        bcs: nameBcs,
       },
+      include: { json: true },
     });
-    const content = result.data?.content as
-      | {
-          fields: {
-            treasury_cap: {
-              fields: {
-                total_supply: { fields: { value: string } };
-              };
-            };
-          };
-        }
+
+    const json = result.object?.json as
+      | { treasury_cap?: { total_supply?: { value?: string } } }
+      | null
       | undefined;
-    return content?.fields?.treasury_cap?.fields?.total_supply?.fields?.value;
+    return json?.treasury_cap?.total_supply?.value ?? undefined;
   }
 
   private getBucketSavingPool(tx: Transaction) {
-    return this.bucketClient.savingPoolObj(tx as any, {
+    return this.bucketClient.savingPoolObj(tx, {
       lpType: constants.SAVING_TYPE,
     });
   }
 
   private getBucketPSMPool(tx: Transaction) {
-    return this.bucketClient.psmPoolObj(tx as any, {
+    return this.bucketClient.psmPoolObj(tx, {
       coinType: constants.USDC_TYPE,
     });
   }
@@ -283,14 +254,14 @@ export class StableLayerClient {
     type: "deposit" | "withdraw";
   }) {
     if (type === "deposit") {
-      return this.bucketClient.checkDepositResponse(tx as any, {
+      return this.bucketClient.checkDepositResponse(tx, {
         lpType: constants.SAVING_TYPE,
-        depositResponse: response as any,
+        depositResponse: response,
       });
     } else {
-      return this.bucketClient.checkWithdrawResponse(tx as any, {
+      return this.bucketClient.checkWithdrawResponse(tx, {
         lpType: constants.SAVING_TYPE,
-        withdrawResponse: response as any,
+        withdrawResponse: response,
       });
     }
   }
@@ -300,8 +271,8 @@ export class StableLayerClient {
       package: constants.YIELD_USDB_PACKAGE_ID,
       arguments: {
         vault: constants.YIELD_VAULT,
-        treasury: this.bucketClient.treasury(tx as any),
-        savingPool: this.bucketClient.savingPoolObj(tx as any, {
+        treasury: this.bucketClient.treasury(tx),
+        savingPool: this.bucketClient.savingPoolObj(tx, {
           lpType: constants.SAVING_TYPE,
         }),
       },

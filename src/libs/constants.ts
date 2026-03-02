@@ -1,5 +1,4 @@
-export const STABLE_VAULT =
-  "0x65f38160110cd6859d05f338ff54b4f462883bb6f87c667a65c0fb0e537410a7";
+export const STABLE_VAULT = "0x65f38160110cd6859d05f338ff54b4f462883bb6f87c667a65c0fb0e537410a7";
 
 export const USDC_TYPE =
   "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC";
@@ -20,11 +19,9 @@ export const STABLE_VAULT_FARM_PACKAGE_ID =
 export const SAVING_TYPE =
   "0x38f61c75fa8407140294c84167dd57684580b55c3066883b48dedc344b1cde1e::susdb::SUSDB";
 
-export const YIELD_VAULT =
-  "0x0a7f6325253157cd437812fea0ceee9a6b96f2ec5eac410da6df39558ff3a4d1";
+export const YIELD_VAULT = "0x0a7f6325253157cd437812fea0ceee9a6b96f2ec5eac410da6df39558ff3a4d1";
 
-export const STABLE_REGISTRY =
-  "0x213f4d584c0770f455bb98c94a4ee5ea9ddbc3d4ebb98a0ad6d093eb6da41642";
+export const STABLE_REGISTRY = "0x213f4d584c0770f455bb98c94a4ee5ea9ddbc3d4ebb98a0ad6d093eb6da41642";
 
 export const STABLE_VAULT_FARM_ENTITY_TYPE = `0xc1025fe014b03d33b207b5afb0ba04293be87fab438c1418a26a75c2fe05c223::stable_vault_farm::StableVaultFarmEntity<${STABLE_LP_TYPE}, ${USDC_TYPE}>`;
 
