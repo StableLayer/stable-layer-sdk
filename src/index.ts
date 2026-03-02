@@ -24,12 +24,12 @@ import {
   pay,
   receive,
 } from "./generated/stable_vault_farm/stable_vault_farm.js";
-import { STABLE_REGISTRY } from "./libs/constants.js";
 import { BucketClient } from "@bucket-protocol/sdk";
+import { SuiGrpcClient } from "@mysten/sui/grpc";
 
 export class StableLayerClient {
   private bucketClient: BucketClient;
-  private suiClient: ReturnType<BucketClient["getSuiClient"]>;
+  private suiClient: SuiGrpcClient;
   private sender: string;
 
   constructor(config: StableLayerConfig) {
