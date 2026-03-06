@@ -23,8 +23,8 @@ describe("StableLayerSDK", () => {
   let sdk: StableLayerClient;
   let suiClient: SuiGrpcClient;
 
-  beforeAll(() => {
-    sdk = new StableLayerClient(testConfig);
+  beforeAll(async () => {
+    sdk = await StableLayerClient.initialize(testConfig);
     suiClient = new SuiGrpcClient({
       network: "mainnet",
       baseUrl: "https://fullnode.mainnet.sui.io:443",

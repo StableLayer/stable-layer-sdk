@@ -20,12 +20,29 @@ export class StableLayerClient {
   private suiClient: SuiGrpcClient;
   private sender: string;
 
-  constructor(config: StableLayerConfig) {
-    this.bucketClient = new BucketClient({ network: config.network });
-    this.suiClient = new SuiGrpcClient({
+  /**
+   * Create a StableLayerClient with config fetched from chain (via BucketClient.initialize).
+   * Use this instead of `new StableLayerClient()`.
+   */
+  static async initialize(config: StableLayerConfig): Promise<StableLayerClient> {
+    const suiClient = new SuiGrpcClient({
       network: config.network,
       baseUrl: `https://fullnode.${config.network}.sui.io:443`,
     });
+    const bucketClient = await BucketClient.initialize({
+      network: config.network,
+      suiClient,
+    });
+    return new StableLayerClient(config, bucketClient, suiClient);
+  }
+
+  private constructor(
+    config: StableLayerConfig,
+    bucketClient: BucketClient,
+    suiClient: SuiGrpcClient,
+  ) {
+    this.bucketClient = bucketClient;
+    this.suiClient = suiClient;
     this.sender = config.sender;
   }
 
