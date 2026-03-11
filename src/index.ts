@@ -20,12 +20,31 @@ export class StableLayerClient {
   private suiClient: SuiGrpcClient;
   private sender: string;
 
-  constructor(config: StableLayerConfig) {
-    this.bucketClient = new BucketClient({ network: config.network });
-    this.suiClient = new SuiGrpcClient({
+  static async initialize(config: StableLayerConfig): Promise<StableLayerClient> {
+    const defaultBaseUrl = `https://fullnode.${config.network}.sui.io:443`;
+    const baseUrl = config.baseUrl ?? process.env.SUI_GRPC_URL ?? defaultBaseUrl;
+    const suiClient =
+      config.suiClient ??
+      new SuiGrpcClient({
+        network: config.network,
+        baseUrl,
+      });
+    const bucketClient = await BucketClient.initialize({
       network: config.network,
-      baseUrl: `https://fullnode.${config.network}.sui.io:443`,
+      suiClient,
+      configObjectId: config.configObjectId,
+      configOverrides: config.configOverrides,
     });
+    return new StableLayerClient(config, bucketClient, suiClient);
+  }
+
+  private constructor(
+    config: StableLayerConfig,
+    bucketClient: BucketClient,
+    suiClient: SuiGrpcClient,
+  ) {
+    this.bucketClient = bucketClient;
+    this.suiClient = suiClient;
     this.sender = config.sender;
   }
 
