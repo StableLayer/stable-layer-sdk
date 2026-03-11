@@ -38,6 +38,7 @@
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
     "dev": "tsc --watch",
     "test": "vitest",
+    "query-output": "QUERY_OUTPUT=1 vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
