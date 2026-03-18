@@ -10,6 +10,8 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 
 ## Quick Start
 
+> **Note:** This SDK currently supports **mainnet only**. Protocol constants in `src/libs/constants.ts` are mainnet-specific; testnet is not supported.
+
 ```typescript
 import { StableLayerClient } from "stable-layer-sdk";
 
@@ -128,10 +130,10 @@ const result = await suiClient.signAndExecuteTransaction({
 
 Creates a client with config fetched from chain (via Bucket Protocol SDK). Returns `Promise<StableLayerClient>`.
 
-| Parameter        | Type                     | Description            |
-| ---------------- | ------------------------ | ---------------------- |
-| `config.network` | `"mainnet" \| "testnet"` | Sui network            |
-| `config.sender`  | `string`                 | Default sender address |
+| Parameter        | Type       | Description                                      |
+| ---------------- | ---------- | ------------------------------------------------ |
+| `config.network` | `"mainnet"`| Sui network (mainnet only; testnet not supported) |
+| `config.sender`  | `string`   | Default sender address                            |
 
 ### Transaction Methods
 
