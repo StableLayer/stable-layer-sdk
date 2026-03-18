@@ -83,15 +83,15 @@ export class StableLayerClient {
         farm: constants.STABLE_VAULT_FARM,
         loan,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx),
-        psmPool: this.getBucketPSMPool(tx),
-        savingPool: this.getBucketSavingPool(tx),
+        usdbTreasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        psmPool: await this.getBucketPSMPool(tx),
+        savingPool: await this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
         uPrice,
       },
     })(tx);
 
-    this.checkResponse({ tx, response: depositResponse, type: "deposit" });
+    await this.checkResponse({ tx, response: depositResponse, type: "deposit" });
 
     if (autoTransfer) {
       tx.transferObjects([stableCoin], sender ?? this.sender);
@@ -127,7 +127,7 @@ export class StableLayerClient {
         : amount!,
       type: stableCoinType,
     });
-    this.releaseRewards(tx);
+    await this.releaseRewards(tx);
 
     const burnRequest = requestBurn({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -148,9 +148,9 @@ export class StableLayerClient {
         farm: constants.STABLE_VAULT_FARM,
         request: burnRequest,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx),
-        psmPool: this.getBucketPSMPool(tx),
-        savingPool: this.getBucketSavingPool(tx),
+        usdbTreasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        psmPool: await this.getBucketPSMPool(tx),
+        savingPool: await this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
         uPrice,
       },
@@ -163,7 +163,7 @@ export class StableLayerClient {
       ],
     })(tx);
 
-    this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
+    await this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
 
     const usdcCoin = fulfillBurn({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -190,7 +190,7 @@ export class StableLayerClient {
   }: ClaimTransactionParams): Promise<CoinResult | undefined> {
     tx.setSender(sender ?? this.sender);
 
-    this.releaseRewards(tx);
+    await this.releaseRewards(tx);
 
     const [rewardCoin, withdrawResponse] = claim({
       package: constants.STABLE_VAULT_FARM_PACKAGE_ID,
@@ -198,8 +198,8 @@ export class StableLayerClient {
         stableRegistry: constants.STABLE_REGISTRY,
         farm: constants.STABLE_VAULT_FARM,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx),
-        savingPool: this.getBucketSavingPool(tx),
+        usdbTreasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        savingPool: await this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
       },
       typeArguments: [
@@ -211,7 +211,7 @@ export class StableLayerClient {
       ],
     })(tx);
 
-    this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
+    await this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
 
     if (autoTransfer) {
       tx.transferObjects([rewardCoin], sender ?? this.sender);
@@ -251,19 +251,19 @@ export class StableLayerClient {
     return json?.treasury_cap?.total_supply?.value ?? undefined;
   }
 
-  private getBucketSavingPool(tx: Transaction) {
-    return this.bucketClient.savingPoolObj(tx, {
-      lpType: constants.SAVING_TYPE,
-    });
+  private async getBucketSavingPool(tx: Transaction) {
+    return Promise.resolve(
+      this.bucketClient.savingPoolObj(tx, { lpType: constants.SAVING_TYPE }),
+    );
   }
 
-  private getBucketPSMPool(tx: Transaction) {
-    return this.bucketClient.psmPoolObj(tx, {
-      coinType: constants.USDC_TYPE,
-    });
+  private async getBucketPSMPool(tx: Transaction) {
+    return Promise.resolve(
+      this.bucketClient.psmPoolObj(tx, { coinType: constants.USDC_TYPE }),
+    );
   }
 
-  private checkResponse({
+  private async checkResponse({
     tx,
     response,
     type,
@@ -273,34 +273,40 @@ export class StableLayerClient {
     type: "deposit" | "withdraw";
   }) {
     if (type === "deposit") {
-      return this.bucketClient.checkDepositResponse(tx, {
-        lpType: constants.SAVING_TYPE,
-        depositResponse: response,
-      });
+      return Promise.resolve(
+        this.bucketClient.checkDepositResponse(tx, {
+          lpType: constants.SAVING_TYPE,
+          depositResponse: response,
+        }),
+      );
     } else {
-      return this.bucketClient.checkWithdrawResponse(tx, {
-        lpType: constants.SAVING_TYPE,
-        withdrawResponse: response,
-      });
+      return Promise.resolve(
+        this.bucketClient.checkWithdrawResponse(tx, {
+          lpType: constants.SAVING_TYPE,
+          withdrawResponse: response,
+        }),
+      );
     }
   }
 
-  private releaseRewards(tx: Transaction) {
+  private async releaseRewards(tx: Transaction) {
     const depositResponse = release({
       package: constants.YIELD_USDB_PACKAGE_ID,
       arguments: {
         vault: constants.YIELD_VAULT,
-        treasury: this.bucketClient.treasury(tx),
-        savingPool: this.bucketClient.savingPoolObj(tx, {
-          lpType: constants.SAVING_TYPE,
-        }),
+        treasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        savingPool: await Promise.resolve(
+          this.bucketClient.savingPoolObj(tx, { lpType: constants.SAVING_TYPE }),
+        ),
       },
       typeArguments: [constants.YUSDB_TYPE, constants.SAVING_TYPE],
     })(tx);
 
-    this.bucketClient.checkDepositResponse(tx, {
-      depositResponse,
-      lpType: constants.SAVING_TYPE,
-    });
+    await Promise.resolve(
+      this.bucketClient.checkDepositResponse(tx, {
+        depositResponse,
+        lpType: constants.SAVING_TYPE,
+      }),
+    );
   }
 }
