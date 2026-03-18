@@ -13,7 +13,7 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 ```typescript
 import { StableLayerClient } from "stable-layer-sdk";
 
-const client = new StableLayerClient({
+const client = await StableLayerClient.initialize({
   network: "mainnet",
   sender: "0xYOUR_ADDRESS",
 });
@@ -124,7 +124,9 @@ const result = await suiClient.signAndExecuteTransaction({
 
 ## API
 
-### `new StableLayerClient(config)`
+### `StableLayerClient.initialize(config)`
+
+Creates a client with config fetched from chain (via Bucket Protocol SDK). Returns `Promise<StableLayerClient>`.
 
 | Parameter        | Type                     | Description            |
 | ---------------- | ------------------------ | ---------------------- |

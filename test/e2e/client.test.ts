@@ -10,6 +10,33 @@ import {
 import { StableLayerClient } from "../../src/index.js";
 import * as constants from "../../src/libs/constants.js";
 
+const QUERY_OUTPUT = process.env.QUERY_OUTPUT === "1";
+
+function report(label: string, value: unknown) {
+  if (QUERY_OUTPUT) {
+    console.log(
+      `\n[Query Output] ${label}:`,
+      JSON.stringify(value, (_, v) => (typeof v === "bigint" ? v.toString() : v), 2),
+    );
+  }
+}
+
+function extractSimulateSummary(result: {
+  $kind: string;
+  Transaction?: { digest?: string; status?: unknown; balanceChanges?: unknown[] };
+  FailedTransaction?: { digest?: string; status?: unknown; balanceChanges?: unknown[] };
+}) {
+  const tx = result.$kind === "Transaction" ? result.Transaction : result.FailedTransaction;
+  if (!tx) return { success: false, $kind: result.$kind };
+  return {
+    success: result.$kind === "Transaction",
+    status: tx.status,
+    digest: "digest" in tx ? tx.digest : undefined,
+    balanceChangeCount: tx.balanceChanges?.length ?? 0,
+    balanceChanges: tx.balanceChanges,
+  };
+}
+
 const BTC_USD_TYPE =
   "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
 const TEST_ACCOUNT = "0x2b986d2381347d9e1c903167cf9b36da5f8eaba6f0db44e0c60e40ea312150ca";
@@ -23,8 +50,8 @@ describe("StableLayerSDK", () => {
   let sdk: StableLayerClient;
   let suiClient: SuiGrpcClient;
 
-  beforeAll(() => {
-    sdk = new StableLayerClient(testConfig);
+  beforeAll(async () => {
+    sdk = await StableLayerClient.initialize(testConfig);
     suiClient = new SuiGrpcClient({
       network: "mainnet",
       baseUrl: "https://fullnode.mainnet.sui.io:443",
@@ -39,13 +66,17 @@ describe("StableLayerSDK", () => {
 
   describe("getTotalSupply", () => {
     it("should return a total supply greater than 0", async () => {
-      expect(Number(await sdk.getTotalSupply())).toBeGreaterThan(0);
+      const totalSupply = await sdk.getTotalSupply();
+      report("getTotalSupply", { totalSupply });
+      expect(Number(totalSupply)).toBeGreaterThan(0);
     });
   });
 
   describe("getTotalSupplyByCoinType", () => {
     it("should has total supply for BTC USDC", async () => {
-      expect(Number(await sdk.getTotalSupplyByCoinType(BTC_USD_TYPE))).toBeGreaterThan(1000);
+      const totalSupply = await sdk.getTotalSupplyByCoinType(BTC_USD_TYPE);
+      report("getTotalSupplyByCoinType", { coinType: BTC_USD_TYPE, totalSupply });
+      expect(Number(totalSupply)).toBeGreaterThan(1000);
     });
   });
 
@@ -70,7 +101,14 @@ describe("StableLayerSDK", () => {
       if (btcUsdcCoin) tx.transferObjects([btcUsdcCoin], TEST_ACCOUNT);
 
       // Dev inspect the transaction to validate it's well-formed
-      const result = await suiClient.simulateTransaction({ transaction: tx });
+      const result = await suiClient.simulateTransaction({
+        transaction: tx,
+        include: { balanceChanges: true },
+      });
+      report("buildMintTx", {
+        returnedCoin: btcUsdcCoin != null,
+        simulate: extractSimulateSummary(result),
+      });
       expect(result.$kind).toBe("Transaction");
     });
 
@@ -98,7 +136,11 @@ describe("StableLayerSDK", () => {
 
       await sdk.buildBurnTx(params);
 
-      const result = await suiClient.simulateTransaction({ transaction: tx });
+      const result = await suiClient.simulateTransaction({
+        transaction: tx,
+        include: { balanceChanges: true },
+      });
+      report("buildBurnTx (amount)", { simulate: extractSimulateSummary(result) });
       expect(result.$kind).toBe("Transaction");
     });
 
@@ -113,7 +155,11 @@ describe("StableLayerSDK", () => {
 
       await sdk.buildBurnTx(params);
 
-      const result = await suiClient.simulateTransaction({ transaction: tx });
+      const result = await suiClient.simulateTransaction({
+        transaction: tx,
+        include: { balanceChanges: true },
+      });
+      report("buildBurnTx (all)", { simulate: extractSimulateSummary(result) });
       expect(result.$kind).toBe("Transaction");
     });
   });
@@ -129,7 +175,11 @@ describe("StableLayerSDK", () => {
 
       await sdk.buildClaimTx(params);
 
-      const result = await suiClient.simulateTransaction({ transaction: tx });
+      const result = await suiClient.simulateTransaction({
+        transaction: tx,
+        include: { balanceChanges: true },
+      });
+      report("buildClaimTx", { simulate: extractSimulateSummary(result) });
       expect(result.$kind).toBe("Transaction");
     });
   });

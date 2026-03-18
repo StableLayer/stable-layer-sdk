@@ -8,8 +8,8 @@ importers:
   .:
     dependencies:
       "@bucket-protocol/sdk":
-        specifier: 2.0.0
-        version: 2.0.0(@mysten/bcs@2.0.2)(@mysten/sui@2.5.0(typescript@5.9.3))
+        specifier: ^2.1.0
+        version: 2.1.0(@mysten/bcs@2.0.2)(@mysten/sui@2.5.0(typescript@5.9.3))
     devDependencies:
       "@ianvs/prettier-plugin-sort-imports":
         specifier: ^4.7.1
@@ -130,10 +130,10 @@ packages:
       }
     engines: { node: ">=6.9.0" }
 
-  "@bucket-protocol/sdk@2.0.0":
+  "@bucket-protocol/sdk@2.1.0":
     resolution:
       {
-        integrity: sha512-xl2YiQvZ38w+XMo3uw6iKr3yPsCM81ihSJ+tlCgR9OVnS8/bRDL5YMH17RQjLIUuCW2kJt59RSTSDcp+0to5Jw==,
+        integrity: sha512-kLmN7SW0TOe0LfKetlPtcO0VW7ABVfbfBLV3/7J4iLNqbfBGuTvfmxBNL4K3Muq2sMmbeTBJQn7B2ZokjcsKrQ==,
       }
     engines: { node: ">=20", pnpm: ">=10" }
     peerDependencies:
@@ -2600,7 +2600,7 @@ snapshots:
       "@babel/helper-string-parser": 7.27.1
       "@babel/helper-validator-identifier": 7.28.5
 
-  "@bucket-protocol/sdk@2.0.0(@mysten/bcs@2.0.2)(@mysten/sui@2.5.0(typescript@5.9.3))":
+  "@bucket-protocol/sdk@2.1.0(@mysten/bcs@2.0.2)(@mysten/sui@2.5.0(typescript@5.9.3))":
     dependencies:
       "@mysten/bcs": 2.0.2
       "@mysten/sui": 2.5.0(typescript@5.9.3)
