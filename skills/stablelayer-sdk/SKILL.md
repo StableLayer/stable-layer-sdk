@@ -123,18 +123,18 @@ const sim = await suiClient.simulateTransaction({ transaction: tx });
 1. `buildBurnTx` throws when both `amount` and `all` are missing.
 2. Amounts are raw units (USDC/stablecoin use 6 decimals).
 3. `buildMintTx` requires `usdcCoin`; ensure balance matches intended mint size.
-4. Mainnet object/package IDs live in `src/libs/constants.ts`; update on protocol upgrades.
+4. Mainnet object/package IDs should be read from the installed SDK runtime constants.
 
 ## Reference Selection
 
-1. Need IDs or type strings: use `references/mainnet-constants.md` to locate and read only required keys from `src/libs/constants.ts`.
+1. Need IDs or type strings: use `references/mainnet-constants.md` and read only required keys from SDK runtime exports.
 2. Need exact internal call order or failure points: use `references/transaction-flows.md`.
 3. Need alternate init setup: use `references/initialization-variants.md`.
 
 ## Troubleshooting Triage
 
 1. `Invalid type argument` or dynamic field errors: re-check `stableCoinType` exact string.
-2. `Object not found` / shared object version errors: refresh values from `src/libs/constants.ts` and redeploy notes.
+2. `Object not found` / shared object version errors: refresh constants from SDK runtime exports and confirm you are on the expected SDK version.
 3. Burn path fails unexpectedly: confirm `amount` or `all` is set, and sender owns the coin.
 4. Mint path fails with balance issues: confirm `usdcCoin` input amount and sender balance.
 5. Network mismatch symptoms: verify `network`, RPC URL, and all object IDs are from the same environment.
@@ -148,6 +148,6 @@ const sim = await suiClient.simulateTransaction({ transaction: tx });
 
 ## References
 
-- [references/mainnet-constants.md](references/mainnet-constants.md): lightweight index to fetch needed constants from `src/libs/constants.ts` on demand.
+- [references/mainnet-constants.md](references/mainnet-constants.md): lightweight index for on-demand constants from installed SDK runtime exports.
 - [references/transaction-flows.md](references/transaction-flows.md): full mint/burn/claim call sequences and troubleshooting.
 - [references/initialization-variants.md](references/initialization-variants.md): custom RPC and config override patterns.

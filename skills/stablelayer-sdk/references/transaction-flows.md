@@ -95,5 +95,5 @@ if (minted) {
 
 1. Verify `stableCoinType` string is exact (`0x...::module::Type`).
 2. Verify sender has required balances for input coins.
-3. Verify constants in `src/libs/constants.ts` match current deployment.
+3. Verify SDK runtime constants (`StableLayerClient.getConstants()` or `constants` export) match your target deployment/network.
 4. Verify RPC endpoint health and network alignment (`mainnet` vs `testnet`).

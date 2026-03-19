@@ -20,6 +20,10 @@ export class StableLayerClient {
   private suiClient: SuiGrpcClient;
   private sender: string;
 
+  static getConstants(): typeof constants {
+    return constants;
+  }
+
   static async initialize(config: StableLayerConfig): Promise<StableLayerClient> {
     const defaultBaseUrl = `https://fullnode.${config.network}.sui.io:443`;
     const baseUrl = config.baseUrl ?? process.env.SUI_GRPC_URL ?? defaultBaseUrl;
@@ -310,3 +314,5 @@ export class StableLayerClient {
     );
   }
 }
+
+export { constants };
