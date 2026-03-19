@@ -97,4 +97,3 @@ if (minted) {
 2. Verify sender has required balances for input coins.
 3. Verify constants in `src/libs/constants.ts` match current deployment.
 4. Verify RPC endpoint health and network alignment (`mainnet` vs `testnet`).
-5. Run `scripts/query-state.ts` to confirm registry and supply visibility.
