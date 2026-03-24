@@ -1,16 +1,16 @@
-name: CI
+name: Test
 
 on:
   push:
-    tags:
-      - "v*.*.*"
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,15 +23,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 23
-          registry-url: "https://registry.npmjs.org"
-          cache: "pnpm"
-      - name: Install Dependencies
+          cache: pnpm
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Compile
+      - name: Build
         run: pnpm run build
-      - name: Test (e2e, mainnet RPC)
+      - name: Vitest (e2e vs mainnet/testnet RPC)
         run: pnpm exec vitest run
-      - name: Publish package
-        run: pnpm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

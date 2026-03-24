@@ -2,6 +2,7 @@ import { BucketClient } from "@bucket-protocol/sdk";
 import { bcs } from "@mysten/sui/bcs";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { coinWithBalance, Transaction, TransactionArgument } from "@mysten/sui/transactions";
+import { normalizeStructTag } from "@mysten/sui/utils";
 
 import {
   fulfillBurn,
@@ -13,6 +14,7 @@ import { claim, pay, receive } from "./generated/stable_vault_farm/stable_vault_
 import { release } from "./generated/yield_usdb/yield_usdb.js";
 import {
   BurnTransactionParams,
+  ClaimRewardUsdbAmountParams,
   ClaimTransactionParams,
   CoinResult,
   MintTransactionParams,
@@ -258,6 +260,50 @@ export class StableLayerClient {
     }
   }
 
+  /**
+   * Preview how much Bucket USDB `sender` would receive from {@link buildClaimTx} with
+   * `autoTransfer: true`, by dry-running the same PTB and summing positive USDB balance
+   * deltas for `sender`. Returns `0n` when simulation fails (e.g. not a factory manager,
+   * nothing to claim). Mainnet only; testnet returns `0n`.
+   */
+  async getClaimRewardUsdbAmount({
+    stableCoinType,
+    sender,
+  }: ClaimRewardUsdbAmountParams): Promise<bigint> {
+    if (this.network === "testnet") {
+      return 0n;
+    }
+
+    const tx = new Transaction();
+    await this.buildClaimTx({
+      tx,
+      stableCoinType,
+      sender,
+      autoTransfer: true,
+    });
+
+    const usdbType = normalizeStructTag(await this.bucketClient.getUsdbCoinType());
+    const res = await this.suiClient.simulateTransaction({
+      transaction: tx,
+      include: { balanceChanges: true },
+    });
+
+    if (res.$kind !== "Transaction") {
+      return 0n;
+    }
+
+    const changes = res.Transaction?.balanceChanges ?? [];
+    const addr = sender.toLowerCase();
+    let sum = 0n;
+    for (const bc of changes) {
+      if (bc.address.toLowerCase() !== addr) continue;
+      if (normalizeStructTag(bc.coinType) !== usdbType) continue;
+      const amt = BigInt(bc.amount);
+      if (amt > 0n) sum += amt;
+    }
+    return sum;
+  }
+
   buildSetMaxSupplyTx({
     tx,
     registry,
@@ -380,4 +426,7 @@ export {
   STABLE_REGISTRY_MAINNET_ALT,
   STABLE_LAYER_PACKAGE_MAINNET_ALT,
 } from "./libs/constants.mainnet.js";
-export type { SetMaxSupplyTransactionParams } from "./interface.js";
+export type {
+  ClaimRewardUsdbAmountParams,
+  SetMaxSupplyTransactionParams,
+} from "./interface.js";

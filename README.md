@@ -18,9 +18,12 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 | `buildSetMaxSupplyTx`      | ✅      | ✅      |
 | `getTotalSupply`           | ✅      | ✅      |
 | `getTotalSupplyByCoinType` | ✅      | ✅      |
+| `getClaimRewardUsdbAmount` | ✅      | ⚪ `0n` |
 | `getConstants(network)`    | ✅      | ✅      |
 
-Testnet uses DummyFarm + SUI as mock USD; Mint/Burn/Claim require the full vault farm stack (mainnet only).
+Testnet uses DummyFarm + SUI as mock USD; Mint/Burn/Claim require the full vault farm stack (mainnet only). `getClaimRewardUsdbAmount` on testnet always returns `0n` (no simulation).
+
+`getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive Bucket **USDB** balance deltas for `sender`; use it to preview claimable rewards in UIs. Returns `0n` if simulation fails (e.g. sender is not a factory manager or nothing to claim).
 
 ## Quick Start
 
@@ -110,6 +113,18 @@ await client.buildClaimTx({
 });
 ```
 
+### Preview claimable USDB (simulation)
+
+**Mainnet only** (testnet returns `0n`). Runs a transaction simulation identical to `buildClaimTx` and reads how much Bucket USDB would be credited to `sender` from balance changes.
+
+```typescript
+const usdbBaseUnits = await client.getClaimRewardUsdbAmount({
+  stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
+  sender: "0xYOUR_ADDRESS", // must be a factory manager for a non-zero preview when rewards exist
+});
+// USDB uses 6 decimals on-chain
+```
+
 ### Set Max Supply
 
 Update the max supply of a brand stablecoin. **Works on mainnet and testnet.**
@@ -183,6 +198,7 @@ All `build*` methods accept a `tx` (Transaction) and optional `sender`. Set `aut
 | `buildSetMaxSupplyTx(params)`    | Update max supply of a coin     | ✅      | ✅      |
 | `getTotalSupply()`               | Total supply from registry      | ✅      | ✅      |
 | `getTotalSupplyByCoinType(type)` | Supply for a specific coin      | ✅      | ✅      |
+| `getClaimRewardUsdbAmount(p)`    | Preview USDB from claim (sim)   | ✅      | ⚪ `0n` |
 
 ### `getConstants(network)`
 

@@ -6,7 +6,7 @@ import {
   BurnTransactionParams,
   ClaimTransactionParams,
   MintTransactionParams,
-} from "../../src//interface.js";
+} from "../../src/interface.js";
 import { StableLayerClient } from "../../src/index.js";
 import * as constants from "../../src/libs/constants.js";
 
@@ -181,6 +181,42 @@ describe("StableLayerSDK", () => {
       });
       report("buildClaimTx", { simulate: extractSimulateSummary(result) });
       expect(result.$kind).toBe("Transaction");
+    });
+  });
+
+  describe("getClaimRewardUsdbAmount", () => {
+    it(
+      "should return a bigint from mainnet simulation",
+      { timeout: 45_000 },
+      async () => {
+        const amount = await sdk.getClaimRewardUsdbAmount({
+          stableCoinType: BTC_USD_TYPE,
+          sender: testConfig.sender,
+        });
+        report("getClaimRewardUsdbAmount (mainnet)", { amount: amount.toString() });
+        expect(typeof amount).toBe("bigint");
+        expect(amount >= 0n).toBe(true);
+      },
+    );
+
+  });
+
+  describe("getClaimRewardUsdbAmount (testnet)", () => {
+    let testnetSdk: StableLayerClient;
+
+    beforeAll(async () => {
+      testnetSdk = await StableLayerClient.initialize({
+        network: "testnet",
+        sender: TEST_ACCOUNT,
+      });
+    }, 60_000);
+
+    it("returns 0n without running claim simulation", async () => {
+      const amount = await testnetSdk.getClaimRewardUsdbAmount({
+        stableCoinType: BTC_USD_TYPE,
+        sender: TEST_ACCOUNT,
+      });
+      expect(amount).toBe(0n);
     });
   });
 });

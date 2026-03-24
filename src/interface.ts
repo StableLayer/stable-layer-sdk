@@ -42,6 +42,12 @@ export interface ClaimTransactionParams {
   autoTransfer?: boolean;
 }
 
+/** Params for `StableLayerClient.getClaimRewardUsdbAmount` (simulation-based preview). */
+export interface ClaimRewardUsdbAmountParams {
+  stableCoinType: string;
+  sender: string;
+}
+
 export interface SetMaxSupplyTransactionParams {
   tx: Transaction;
   registry: string;
