@@ -23,7 +23,7 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 
 Testnet uses DummyFarm + Circle **USDC** on Sui testnet (`getConstants("testnet").USDC_TYPE`); Mint/Burn/Claim require the full vault farm stack (mainnet only). `getClaimRewardUsdbAmount` on testnet always returns `0n` (no simulation).
 
-`getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive Bucket **USDB** balance deltas for `sender`; use it to preview claimable rewards in UIs. Returns `0n` if simulation fails (e.g. sender is not a factory manager or nothing to claim).
+`getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive Bucket **USDB** balance deltas for `sender`; use it to preview claimable rewards in UIs. Returns **`0n` only when the dry-run succeeds and there is no USDB credit** for `sender`. **Throws** if the dry-run does not complete as a successful transaction, or on RPC/build errors—use `try/catch` (or React Query `isError`) so the UI can distinguish errors from “zero rewards”.
 
 ## Quick Start
 
@@ -115,14 +115,18 @@ await client.buildClaimTx({
 
 ### Preview claimable USDB (simulation)
 
-**Mainnet only** (testnet returns `0n`). Runs a transaction simulation identical to `buildClaimTx` and reads how much Bucket USDB would be credited to `sender` from balance changes.
+**Mainnet only** (testnet returns `0n`). Runs a transaction simulation identical to `buildClaimTx` and reads how much Bucket USDB would be credited to `sender` from balance changes. A **failed** dry-run (abort, lack of permission, etc.) **throws** instead of returning `0n`, so `0n` means “simulation OK, nothing to claim.”
 
 ```typescript
-const usdbBaseUnits = await client.getClaimRewardUsdbAmount({
-  stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
-  sender: "0xYOUR_ADDRESS", // must be a factory manager for a non-zero preview when rewards exist
-});
-// USDB uses 6 decimals on-chain
+try {
+  const usdbBaseUnits = await client.getClaimRewardUsdbAmount({
+    stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
+    sender: "0xYOUR_ADDRESS",
+  });
+  // USDB uses 6 decimals on-chain
+} catch {
+  // preview unavailable: RPC error or simulation did not succeed
+}
 ```
 
 ### Set Max Supply
@@ -180,7 +184,7 @@ const result = await suiClient.signAndExecuteTransaction({
 E2E tests live in `test/e2e/` and call mainnet RPC. Run once: `pnpm exec vitest run`.
 
 - **`QUERY_OUTPUT=1`** (or `pnpm query-output`): prints extra `report()` JSON for mint/burn/claim simulations.
-- **`getClaimRewardUsdbAmount`** e2e runs twice: a non-manager sender (expects `0`) and the TESTUSDC factory manager address (expects `> 0`); both **`console.log`** simulated USDB raw units without env vars.
+- **`getClaimRewardUsdbAmount`** e2e: non-manager sender expects **rejection** (failed dry-run); TESTUSDC factory manager expects **`> 0`**; both cases **`console.log`** when the call settles without env vars.
 
 ## API
 

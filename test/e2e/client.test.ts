@@ -192,22 +192,17 @@ describe("StableLayerSDK", () => {
 
   describe("getClaimRewardUsdbAmount", () => {
     it(
-      "returns 0n for a sender without factory-manager claim rights",
+      "throws when sender cannot complete claim dry-run (e.g. not factory manager)",
       { timeout: 45_000 },
       async () => {
-        const amount = await sdk.getClaimRewardUsdbAmount({
-          stableCoinType: TEST_USDC_STABLE_TYPE,
-          sender: TEST_ACCOUNT,
-        });
-        console.log(
-          "[e2e] getClaimRewardUsdbAmount (random sender, USDB raw):",
-          amount.toString(),
-        );
-        report("getClaimRewardUsdbAmount (non-manager)", {
-          sender: TEST_ACCOUNT,
-          amount: amount.toString(),
-        });
-        expect(amount).toBe(0n);
+        await expect(
+          sdk.getClaimRewardUsdbAmount({
+            stableCoinType: TEST_USDC_STABLE_TYPE,
+            sender: TEST_ACCOUNT,
+          }),
+        ).rejects.toThrow(/dry-run did not succeed/);
+        console.log("[e2e] getClaimRewardUsdbAmount (random sender): rejected as expected");
+        report("getClaimRewardUsdbAmount (non-manager)", { sender: TEST_ACCOUNT, rejected: true });
       },
     );
 

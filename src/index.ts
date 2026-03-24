@@ -263,8 +263,12 @@ export class StableLayerClient {
   /**
    * Preview how much Bucket USDB `sender` would receive from {@link buildClaimTx} with
    * `autoTransfer: true`, by dry-running the same PTB and summing positive USDB balance
-   * deltas for `sender`. Returns `0n` when simulation fails (e.g. not a factory manager,
-   * nothing to claim). Mainnet only; testnet returns `0n`.
+   * deltas for `sender`.
+   *
+   * Returns `0n` only when the dry-run **succeeds** and there is no positive USDB credit
+   * for `sender` (nothing claimable). **Throws** if the dry-run does not complete as a
+   * successful transaction, if building the PTB or resolving USDB type fails, or if
+   * `simulateTransaction` fails (e.g. network/RPC). Mainnet only; testnet returns `0n`.
    */
   async getClaimRewardUsdbAmount({
     stableCoinType,
@@ -289,7 +293,9 @@ export class StableLayerClient {
     });
 
     if (res.$kind !== "Transaction") {
-      return 0n;
+      throw new Error(
+        "StableLayerClient.getClaimRewardUsdbAmount: dry-run did not succeed; cannot infer claimable USDB.",
+      );
     }
 
     const changes = res.Transaction?.balanceChanges ?? [];

@@ -42,7 +42,11 @@ export interface ClaimTransactionParams {
   autoTransfer?: boolean;
 }
 
-/** Params for `StableLayerClient.getClaimRewardUsdbAmount` (simulation-based preview). */
+/**
+ * Params for `StableLayerClient.getClaimRewardUsdbAmount` (simulation-based preview).
+ * Throws on failed dry-run, RPC, or build errors; returns `0n` only when dry-run succeeds
+ * and there is no claimable USDB for `sender`.
+ */
 export interface ClaimRewardUsdbAmountParams {
   stableCoinType: string;
   sender: string;
