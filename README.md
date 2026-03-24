@@ -8,15 +8,34 @@ TypeScript SDK for the [Stable Layer](https://github.com/StableLayer/stable-laye
 npm install stable-layer-sdk @mysten/sui @mysten/bcs
 ```
 
-## Quick Start
+## Network Support
 
-> **Note:** This SDK currently supports **mainnet only**. Protocol constants in `src/libs/constants.ts` are mainnet-specific; testnet is not supported.
+| Feature | Mainnet | Testnet |
+|---------|---------|---------|
+| `buildMintTx` | ✅ | ❌ |
+| `buildBurnTx` | ✅ | ❌ |
+| `buildClaimTx` | ✅ | ❌ |
+| `buildSetMaxSupplyTx` | ✅ | ✅ |
+| `getTotalSupply` | ✅ | ✅ |
+| `getTotalSupplyByCoinType` | ✅ | ✅ |
+| `getConstants(network)` | ✅ | ✅ |
+
+Testnet uses DummyFarm + SUI as mock USD; Mint/Burn/Claim require the full vault farm stack (mainnet only).
+
+## Quick Start
 
 ```typescript
 import { StableLayerClient } from "stable-layer-sdk";
 
+// Mainnet (full support)
 const client = await StableLayerClient.initialize({
   network: "mainnet",
+  sender: "0xYOUR_ADDRESS",
+});
+
+// Testnet (set_max_supply, supply queries only)
+const testnetClient = await StableLayerClient.initialize({
+  network: "testnet",
   sender: "0xYOUR_ADDRESS",
 });
 ```
@@ -80,7 +99,7 @@ await client.buildBurnTx({
 
 ### Claim Rewards
 
-Claim accumulated yield farming rewards.
+Claim accumulated yield farming rewards. **Mainnet only.**
 
 ```typescript
 const tx = new Transaction();
@@ -88,6 +107,23 @@ const tx = new Transaction();
 await client.buildClaimTx({
   tx,
   stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
+});
+```
+
+### Set Max Supply
+
+Update the max supply of a brand stablecoin. **Works on mainnet and testnet.**
+
+```typescript
+const tx = new Transaction();
+
+client.buildSetMaxSupplyTx({
+  tx,
+  registry: "0x213f4d58...",
+  factoryCapId: "0x...",
+  maxSupply: BigInt(10_000_000_000000),
+  stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
+  usdCoinType: "0xdba34...::usdc::USDC", // or 0x2::sui::SUI on testnet
 });
 ```
 
@@ -130,22 +166,34 @@ const result = await suiClient.signAndExecuteTransaction({
 
 Creates a client with config fetched from chain (via Bucket Protocol SDK). Returns `Promise<StableLayerClient>`.
 
-| Parameter        | Type       | Description                                      |
-| ---------------- | ---------- | ------------------------------------------------ |
-| `config.network` | `"mainnet"`| Sui network (mainnet only; testnet not supported) |
-| `config.sender`  | `string`   | Default sender address                            |
+| Parameter        | Type                   | Description                         |
+| ---------------- | ---------------------- | ----------------------------------- |
+| `config.network` | `"mainnet" \| "testnet"` | Sui network                          |
+| `config.sender`  | `string`               | Default sender address               |
 
-### Transaction Methods
+### Transaction & Query Methods
 
-All methods accept a `tx` (Transaction) and optional `sender` to override the default. Set `autoTransfer: false` to get the resulting coin back instead of auto-transferring.
+All `build*` methods accept a `tx` (Transaction) and optional `sender`. Set `autoTransfer: false` in mint/burn/claim to get the resulting coin back instead of auto-transferring.
 
-| Method                           | Description                               |
-| -------------------------------- | ----------------------------------------- |
-| `buildMintTx(params)`            | Mint stablecoins from USDC                |
-| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC           |
-| `buildClaimTx(params)`           | Claim yield farming rewards               |
-| `getTotalSupply()`               | Get total supply from registry            |
-| `getTotalSupplyByCoinType(type)` | Get total supply for a specific coin type |
+| Method                           | Description                    | Mainnet | Testnet |
+| -------------------------------- | ------------------------------ | ------- | ------- |
+| `buildMintTx(params)`            | Mint stablecoins from USDC     | ✅      | ❌      |
+| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC| ✅      | ❌      |
+| `buildClaimTx(params)`           | Claim yield farming rewards    | ✅      | ❌      |
+| `buildSetMaxSupplyTx(params)`    | Update max supply of a coin    | ✅      | ✅      |
+| `getTotalSupply()`               | Total supply from registry     | ✅      | ✅      |
+| `getTotalSupplyByCoinType(type)` | Supply for a specific coin     | ✅      | ✅      |
+
+### `getConstants(network)`
+
+Get network-specific protocol constants (registry, package IDs, etc.) without initializing a client.
+
+```typescript
+import { getConstants } from "stable-layer-sdk";
+
+const mainnet = getConstants("mainnet");
+const testnet = getConstants("testnet");
+```
 
 ## License
 

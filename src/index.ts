@@ -3,7 +3,12 @@ import { bcs } from "@mysten/sui/bcs";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { coinWithBalance, Transaction, TransactionArgument } from "@mysten/sui/transactions";
 
-import { fulfillBurn, mint, requestBurn } from "./generated/stable_layer/stable_layer.js";
+import {
+  fulfillBurn,
+  mint,
+  requestBurn,
+  setMaxSupply,
+} from "./generated/stable_layer/stable_layer.js";
 import { claim, pay, receive } from "./generated/stable_vault_farm/stable_vault_farm.js";
 import { release } from "./generated/yield_usdb/yield_usdb.js";
 import {
@@ -11,17 +16,24 @@ import {
   ClaimTransactionParams,
   CoinResult,
   MintTransactionParams,
+  SetMaxSupplyTransactionParams,
   StableLayerConfig,
 } from "./interface.js";
-import * as constants from "./libs/constants.js";
+import { getConstants } from "./libs/constants.js";
+import * as mainnet from "./libs/constants.mainnet.js";
 
 export class StableLayerClient {
   private bucketClient: BucketClient;
   private suiClient: SuiGrpcClient;
   private sender: string;
+  private network: import("./interface.js").Network;
 
-  static getConstants(): typeof constants {
-    return constants;
+  static getConstants(network: import("./interface.js").Network) {
+    return getConstants(network);
+  }
+
+  getConstants() {
+    return getConstants(this.network);
   }
 
   static async initialize(config: StableLayerConfig): Promise<StableLayerClient> {
@@ -50,6 +62,7 @@ export class StableLayerClient {
     this.bucketClient = bucketClient;
     this.suiClient = suiClient;
     this.sender = config.sender;
+    this.network = config.network;
   }
 
   async buildMintTx({
@@ -59,7 +72,14 @@ export class StableLayerClient {
     sender,
     autoTransfer = true,
   }: MintTransactionParams): Promise<CoinResult | undefined> {
+    if (this.network === "testnet") {
+      throw new Error(
+        "buildMintTx is mainnet-only. Testnet uses DummyFarm and does not have vault farm. " +
+          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet."
+      );
+    }
     tx.setSender(sender ?? this.sender);
+    const constants = this.getConstants();
 
     const [stableCoin, loan] = mint({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -113,6 +133,12 @@ export class StableLayerClient {
     sender,
     autoTransfer = true,
   }: BurnTransactionParams): Promise<CoinResult | undefined> {
+    if (this.network === "testnet") {
+      throw new Error(
+        "buildBurnTx is mainnet-only. Testnet uses DummyFarm and does not have vault farm. " +
+          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet."
+      );
+    }
     tx.setSender(sender ?? this.sender);
 
     if (!all && !amount) {
@@ -133,6 +159,7 @@ export class StableLayerClient {
     });
     await this.releaseRewards(tx);
 
+    const constants = this.getConstants();
     const burnRequest = requestBurn({
       package: constants.STABLE_LAYER_PACKAGE_ID,
       arguments: {
@@ -192,10 +219,17 @@ export class StableLayerClient {
     sender,
     autoTransfer = true,
   }: ClaimTransactionParams): Promise<CoinResult | undefined> {
+    if (this.network === "testnet") {
+      throw new Error(
+        "buildClaimTx is mainnet-only. Testnet uses DummyFarm and does not have yield vault. " +
+          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet."
+      );
+    }
     tx.setSender(sender ?? this.sender);
 
     await this.releaseRewards(tx);
 
+    const constants = this.getConstants();
     const [rewardCoin, withdrawResponse] = claim({
       package: constants.STABLE_VAULT_FARM_PACKAGE_ID,
       arguments: {
@@ -225,7 +259,36 @@ export class StableLayerClient {
     }
   }
 
+  buildSetMaxSupplyTx({
+    tx,
+    registry,
+    factoryCapId,
+    maxSupply,
+    stableCoinType,
+    usdCoinType,
+    sender,
+  }: SetMaxSupplyTransactionParams): void {
+    tx.setSender(sender ?? this.sender);
+    const constants = this.getConstants();
+    const packageId =
+      this.network === "mainnet" &&
+      registry === mainnet.MAINNET.STABLE_REGISTRY_MAINNET_ALT
+        ? mainnet.MAINNET.STABLE_LAYER_PACKAGE_MAINNET_ALT
+        : constants.STABLE_LAYER_PACKAGE_ID;
+
+    setMaxSupply({
+      package: packageId,
+      arguments: {
+        registry,
+        FactoryCap: factoryCapId,
+        maxSupply,
+      },
+      typeArguments: [stableCoinType, usdCoinType],
+    })(tx);
+  }
+
   async getTotalSupply(): Promise<string | undefined> {
+    const constants = this.getConstants();
     const result = await this.suiClient.getObject({
       objectId: constants.STABLE_REGISTRY,
       include: { json: true },
@@ -239,6 +302,7 @@ export class StableLayerClient {
     const TypeName = bcs.struct("TypeName", { name: bcs.string() });
     const nameBcs = TypeName.serialize({ name: stableCoinType.slice(2) }).toBytes();
 
+    const constants = this.getConstants();
     const result = await this.suiClient.core.getDynamicObjectField({
       parentId: constants.STABLE_REGISTRY,
       name: {
@@ -257,13 +321,13 @@ export class StableLayerClient {
 
   private async getBucketSavingPool(tx: Transaction) {
     return Promise.resolve(
-      this.bucketClient.savingPoolObj(tx, { lpType: constants.SAVING_TYPE }),
+      this.bucketClient.savingPoolObj(tx, { lpType: this.getConstants().SAVING_TYPE }),
     );
   }
 
   private async getBucketPSMPool(tx: Transaction) {
     return Promise.resolve(
-      this.bucketClient.psmPoolObj(tx, { coinType: constants.USDC_TYPE }),
+      this.bucketClient.psmPoolObj(tx, { coinType: this.getConstants().USDC_TYPE }),
     );
   }
 
@@ -276,17 +340,18 @@ export class StableLayerClient {
     response: TransactionArgument;
     type: "deposit" | "withdraw";
   }) {
+    const lpType = this.getConstants().SAVING_TYPE;
     if (type === "deposit") {
       return Promise.resolve(
         this.bucketClient.checkDepositResponse(tx, {
-          lpType: constants.SAVING_TYPE,
+          lpType,
           depositResponse: response,
         }),
       );
     } else {
       return Promise.resolve(
         this.bucketClient.checkWithdrawResponse(tx, {
-          lpType: constants.SAVING_TYPE,
+          lpType,
           withdrawResponse: response,
         }),
       );
@@ -294,6 +359,7 @@ export class StableLayerClient {
   }
 
   private async releaseRewards(tx: Transaction) {
+    const constants = this.getConstants();
     const depositResponse = release({
       package: constants.YIELD_USDB_PACKAGE_ID,
       arguments: {
@@ -315,4 +381,13 @@ export class StableLayerClient {
   }
 }
 
-export { constants };
+export {
+  getConstants,
+  type Constants,
+} from "./libs/constants.js";
+export * from "./libs/constants.js";
+export {
+  STABLE_REGISTRY_MAINNET_ALT,
+  STABLE_LAYER_PACKAGE_MAINNET_ALT,
+} from "./libs/constants.mainnet.js";
+export type { SetMaxSupplyTransactionParams } from "./interface.js";
