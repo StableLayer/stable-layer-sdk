@@ -10,15 +10,15 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 
 ## Network Support
 
-| Feature | Mainnet | Testnet |
-|---------|---------|---------|
-| `buildMintTx` | ✅ | ❌ |
-| `buildBurnTx` | ✅ | ❌ |
-| `buildClaimTx` | ✅ | ❌ |
-| `buildSetMaxSupplyTx` | ✅ | ✅ |
-| `getTotalSupply` | ✅ | ✅ |
-| `getTotalSupplyByCoinType` | ✅ | ✅ |
-| `getConstants(network)` | ✅ | ✅ |
+| Feature                    | Mainnet | Testnet |
+| -------------------------- | ------- | ------- |
+| `buildMintTx`              | ✅      | ❌      |
+| `buildBurnTx`              | ✅      | ❌      |
+| `buildClaimTx`             | ✅      | ❌      |
+| `buildSetMaxSupplyTx`      | ✅      | ✅      |
+| `getTotalSupply`           | ✅      | ✅      |
+| `getTotalSupplyByCoinType` | ✅      | ✅      |
+| `getConstants(network)`    | ✅      | ✅      |
 
 Testnet uses DummyFarm + SUI as mock USD; Mint/Burn/Claim require the full vault farm stack (mainnet only).
 
@@ -166,23 +166,23 @@ const result = await suiClient.signAndExecuteTransaction({
 
 Creates a client with config fetched from chain (via Bucket Protocol SDK). Returns `Promise<StableLayerClient>`.
 
-| Parameter        | Type                   | Description                         |
-| ---------------- | ---------------------- | ----------------------------------- |
-| `config.network` | `"mainnet" \| "testnet"` | Sui network                          |
-| `config.sender`  | `string`               | Default sender address               |
+| Parameter        | Type                     | Description            |
+| ---------------- | ------------------------ | ---------------------- |
+| `config.network` | `"mainnet" \| "testnet"` | Sui network            |
+| `config.sender`  | `string`                 | Default sender address |
 
 ### Transaction & Query Methods
 
 All `build*` methods accept a `tx` (Transaction) and optional `sender`. Set `autoTransfer: false` in mint/burn/claim to get the resulting coin back instead of auto-transferring.
 
-| Method                           | Description                    | Mainnet | Testnet |
-| -------------------------------- | ------------------------------ | ------- | ------- |
-| `buildMintTx(params)`            | Mint stablecoins from USDC     | ✅      | ❌      |
-| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC| ✅      | ❌      |
-| `buildClaimTx(params)`           | Claim yield farming rewards    | ✅      | ❌      |
-| `buildSetMaxSupplyTx(params)`    | Update max supply of a coin    | ✅      | ✅      |
-| `getTotalSupply()`               | Total supply from registry     | ✅      | ✅      |
-| `getTotalSupplyByCoinType(type)` | Supply for a specific coin     | ✅      | ✅      |
+| Method                           | Description                     | Mainnet | Testnet |
+| -------------------------------- | ------------------------------- | ------- | ------- |
+| `buildMintTx(params)`            | Mint stablecoins from USDC      | ✅      | ❌      |
+| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC | ✅      | ❌      |
+| `buildClaimTx(params)`           | Claim yield farming rewards     | ✅      | ❌      |
+| `buildSetMaxSupplyTx(params)`    | Update max supply of a coin     | ✅      | ✅      |
+| `getTotalSupply()`               | Total supply from registry      | ✅      | ✅      |
+| `getTotalSupplyByCoinType(type)` | Supply for a specific coin      | ✅      | ✅      |
 
 ### `getConstants(network)`
 

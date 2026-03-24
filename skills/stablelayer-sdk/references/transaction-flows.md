@@ -4,17 +4,18 @@ Use this guide when you need to reason about which Stable Layer method to call, 
 
 ## Decision Matrix
 
-| Goal | Method | Typical Inputs | Returned coin (`autoTransfer: false`) |
-| --- | --- | --- | --- |
-| Mint stablecoin from USDC | `buildMintTx` | `stableCoinType`, `usdcCoin`, `amount` | Minted stablecoin |
-| Burn stablecoin back to USDC | `buildBurnTx` | `stableCoinType` + (`amount` or `all`) | USDC |
-| Claim farm rewards | `buildClaimTx` | `stableCoinType` | Reward coin |
-| Query all stable supply | `getTotalSupply` | none | n/a |
-| Query one stable supply | `getTotalSupplyByCoinType` | `stableCoinType` | n/a |
+| Goal                         | Method                     | Typical Inputs                         | Returned coin (`autoTransfer: false`) |
+| ---------------------------- | -------------------------- | -------------------------------------- | ------------------------------------- |
+| Mint stablecoin from USDC    | `buildMintTx`              | `stableCoinType`, `usdcCoin`, `amount` | Minted stablecoin                     |
+| Burn stablecoin back to USDC | `buildBurnTx`              | `stableCoinType` + (`amount` or `all`) | USDC                                  |
+| Claim farm rewards           | `buildClaimTx`             | `stableCoinType`                       | Reward coin                           |
+| Query all stable supply      | `getTotalSupply`           | none                                   | n/a                                   |
+| Query one stable supply      | `getTotalSupplyByCoinType` | `stableCoinType`                       | n/a                                   |
 
 ## Mint Flow (`buildMintTx`)
 
 High-level sequence:
+
 1. `tx.setSender(...)`
 2. `stable_layer::mint` -> output: `[stableCoin, loan]`
 3. Bucket `aggregatePrices([USDC_TYPE])` -> output: `uPrice`
@@ -23,6 +24,7 @@ High-level sequence:
 6. If `autoTransfer === true`, transfer `stableCoin` to sender
 
 Common failure points:
+
 - Invalid or unsupported `stableCoinType`
 - `usdcCoin` amount mismatch
 - Stale shared object IDs (constants out of date)
@@ -31,6 +33,7 @@ Common failure points:
 ## Burn Flow (`buildBurnTx`)
 
 High-level sequence:
+
 1. `tx.setSender(...)`
 2. Validate input: throw if both `amount` and `all` are missing
 3. Build stable coin input:
@@ -45,6 +48,7 @@ High-level sequence:
 10. If `autoTransfer === true`, transfer USDC to sender
 
 Common failure points:
+
 - Neither `amount` nor `all` provided
 - Insufficient stablecoin balance when using `amount`
 - Wrong sender when using `all: true` (balance read for sender)
@@ -53,6 +57,7 @@ Common failure points:
 ## Claim Flow (`buildClaimTx`)
 
 High-level sequence:
+
 1. `tx.setSender(...)`
 2. `yield_usdb::release`
 3. `stable_vault_farm::claim(...)` -> output `[rewardCoin, withdrawResponse]`
@@ -60,6 +65,7 @@ High-level sequence:
 5. If `autoTransfer === true`, transfer reward coin to sender
 
 Common failure points:
+
 - No claimable rewards (depends on protocol behavior)
 - Incorrect `stableCoinType`
 - Shared object or package ID drift

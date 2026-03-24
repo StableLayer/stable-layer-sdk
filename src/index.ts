@@ -20,7 +20,6 @@ import {
   StableLayerConfig,
 } from "./interface.js";
 import { getConstants } from "./libs/constants.js";
-import * as mainnet from "./libs/constants.mainnet.js";
 
 export class StableLayerClient {
   private bucketClient: BucketClient;
@@ -75,7 +74,7 @@ export class StableLayerClient {
     if (this.network === "testnet") {
       throw new Error(
         "buildMintTx is mainnet-only. Testnet uses DummyFarm and does not have vault farm. " +
-          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet."
+          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet.",
       );
     }
     tx.setSender(sender ?? this.sender);
@@ -136,7 +135,7 @@ export class StableLayerClient {
     if (this.network === "testnet") {
       throw new Error(
         "buildBurnTx is mainnet-only. Testnet uses DummyFarm and does not have vault farm. " +
-          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet."
+          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet.",
       );
     }
     tx.setSender(sender ?? this.sender);
@@ -222,7 +221,7 @@ export class StableLayerClient {
     if (this.network === "testnet") {
       throw new Error(
         "buildClaimTx is mainnet-only. Testnet uses DummyFarm and does not have yield vault. " +
-          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet."
+          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet.",
       );
     }
     tx.setSender(sender ?? this.sender);
@@ -270,14 +269,9 @@ export class StableLayerClient {
   }: SetMaxSupplyTransactionParams): void {
     tx.setSender(sender ?? this.sender);
     const constants = this.getConstants();
-    const packageId =
-      this.network === "mainnet" &&
-      registry === mainnet.MAINNET.STABLE_REGISTRY_MAINNET_ALT
-        ? mainnet.MAINNET.STABLE_LAYER_PACKAGE_MAINNET_ALT
-        : constants.STABLE_LAYER_PACKAGE_ID;
 
     setMaxSupply({
-      package: packageId,
+      package: constants.STABLE_LAYER_PACKAGE_ID,
       arguments: {
         registry,
         FactoryCap: factoryCapId,
@@ -381,10 +375,6 @@ export class StableLayerClient {
   }
 }
 
-export {
-  getConstants,
-  type Constants,
-} from "./libs/constants.js";
 export * from "./libs/constants.js";
 export {
   STABLE_REGISTRY_MAINNET_ALT,

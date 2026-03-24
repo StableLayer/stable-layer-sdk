@@ -5,11 +5,9 @@
  */
 export const TESTNET = {
   /** stable_layer package — deployed 2025-03 */
-  STABLE_LAYER_PACKAGE_ID:
-    "0x3aa25959c431bddf707337753a35147873db01e7b2bb65cf7ff84df1c177b3cb",
+  STABLE_LAYER_PACKAGE_ID: "0x3aa25959c431bddf707337753a35147873db01e7b2bb65cf7ff84df1c177b3cb",
   /** StableRegistry shared object — from testnet deployment */
-  STABLE_REGISTRY:
-    "0xe45d16ea6fba5c105e3cda1cc4d4199f10e4c4ab330c9ed3d0ef3a26b6c89803",
+  STABLE_REGISTRY: "0xe45d16ea6fba5c105e3cda1cc4d4199f10e4c4ab330c9ed3d0ef3a26b6c89803",
   /** SUI as mock USD on testnet */
   USDC_TYPE: "0x2::sui::SUI",
   /** DummyFarmEntity<SUI> — required for create_stable type args (Create Coin flow) */
@@ -28,5 +26,4 @@ export const TESTNET = {
   TESTNET_INCENTIVE_POOL: "",
 } as const;
 
-export const STABLE_VAULT_FARM_ENTITY_TYPE_TESTNET =
-  TESTNET.STABLE_VAULT_FARM_ENTITY_TYPE;
+export const STABLE_VAULT_FARM_ENTITY_TYPE_TESTNET = TESTNET.STABLE_VAULT_FARM_ENTITY_TYPE;
