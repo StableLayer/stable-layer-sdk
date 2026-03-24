@@ -21,7 +21,7 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 | `getClaimRewardUsdbAmount` | ✅      | ⚪ `0n` |
 | `getConstants(network)`    | ✅      | ✅      |
 
-Testnet uses DummyFarm + SUI as mock USD; Mint/Burn/Claim require the full vault farm stack (mainnet only). `getClaimRewardUsdbAmount` on testnet always returns `0n` (no simulation).
+Testnet uses DummyFarm + Circle **USDC** on Sui testnet (`getConstants("testnet").USDC_TYPE`); Mint/Burn/Claim require the full vault farm stack (mainnet only). `getClaimRewardUsdbAmount` on testnet always returns `0n` (no simulation).
 
 `getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive Bucket **USDB** balance deltas for `sender`; use it to preview claimable rewards in UIs. Returns `0n` if simulation fails (e.g. sender is not a factory manager or nothing to claim).
 
@@ -138,7 +138,7 @@ client.buildSetMaxSupplyTx({
   factoryCapId: "0x...",
   maxSupply: BigInt(10_000_000_000000),
   stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
-  usdCoinType: "0xdba34...::usdc::USDC", // or 0x2::sui::SUI on testnet
+  usdCoinType: "0xdba34...::usdc::USDC", // testnet: Circle USDC — see getConstants("testnet").USDC_TYPE
 });
 ```
 
@@ -174,6 +174,13 @@ const result = await suiClient.signAndExecuteTransaction({
   signer: keypair,
 });
 ```
+
+## Testing
+
+E2E tests live in `test/e2e/` and call mainnet RPC. Run once: `pnpm exec vitest run`.
+
+- **`QUERY_OUTPUT=1`** (or `pnpm query-output`): prints extra `report()` JSON for mint/burn/claim simulations.
+- **`getClaimRewardUsdbAmount`** e2e runs twice: a non-manager sender (expects `0`) and the TESTUSDC factory manager address (expects `> 0`); both **`console.log`** simulated USDB raw units without env vars.
 
 ## API
 

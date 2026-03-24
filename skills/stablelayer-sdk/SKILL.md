@@ -45,7 +45,6 @@ For custom RPC or Bucket config overrides, use [references/initialization-varian
 | Mint stablecoin from USDC | `buildMintTx`              | Input includes `usdcCoin`, optional returned coin with `autoTransfer: false` |
 | Burn stablecoin to USDC   | `buildBurnTx`              | Must pass either `amount` or `all: true`                                     |
 | Claim rewards             | `buildClaimTx`             | Returns reward coin when `autoTransfer: false`                               |
-| Preview claim USDB        | `getClaimRewardUsdbAmount` | Mainnet: simulates same PTB as claim; testnet always `0n`                   |
 | Query global supply       | `getTotalSupply`           | Reads `STABLE_REGISTRY.total_supply`                                         |
 | Query supply by type      | `getTotalSupplyByCoinType` | Reads registry dynamic field by `TypeName`                                   |
 

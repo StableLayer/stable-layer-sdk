@@ -39,7 +39,13 @@ function extractSimulateSummary(result: {
 
 const BTC_USD_TYPE =
   "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
+/** Mainnet TESTUSDC — listed on StableRegistry (used for getClaimRewardUsdbAmount e2e) */
+const TEST_USDC_STABLE_TYPE =
+  "0x71c0f8de08bffad0c234dc26c242d7fc06999e5c75897b67c15c259315789a4b::testusdc::TESTUSDC";
 const TEST_ACCOUNT = "0x2b986d2381347d9e1c903167cf9b36da5f8eaba6f0db44e0c60e40ea312150ca";
+/** TESTUSDC factory manager on mainnet — `getClaimRewardUsdbAmount` only shows USDB delta for this sender when they can `buildClaimTx` */
+const TESTUSDC_MANAGER_ADDRESS =
+  "0x006d980cadd43c778e628201b45cfd3ba6e1047c65f67648a88f635108ffd6eb";
 
 const testConfig = {
   network: "mainnet" as const,
@@ -186,19 +192,45 @@ describe("StableLayerSDK", () => {
 
   describe("getClaimRewardUsdbAmount", () => {
     it(
-      "should return a bigint from mainnet simulation",
+      "returns 0n for a sender without factory-manager claim rights",
       { timeout: 45_000 },
       async () => {
         const amount = await sdk.getClaimRewardUsdbAmount({
-          stableCoinType: BTC_USD_TYPE,
-          sender: testConfig.sender,
+          stableCoinType: TEST_USDC_STABLE_TYPE,
+          sender: TEST_ACCOUNT,
         });
-        report("getClaimRewardUsdbAmount (mainnet)", { amount: amount.toString() });
-        expect(typeof amount).toBe("bigint");
-        expect(amount >= 0n).toBe(true);
+        console.log(
+          "[e2e] getClaimRewardUsdbAmount (random sender, USDB raw):",
+          amount.toString(),
+        );
+        report("getClaimRewardUsdbAmount (non-manager)", {
+          sender: TEST_ACCOUNT,
+          amount: amount.toString(),
+        });
+        expect(amount).toBe(0n);
       },
     );
 
+    it(
+      "returns positive USDB preview for TESTUSDC factory manager sender",
+      { timeout: 45_000 },
+      async () => {
+        const amount = await sdk.getClaimRewardUsdbAmount({
+          stableCoinType: TEST_USDC_STABLE_TYPE,
+          sender: TESTUSDC_MANAGER_ADDRESS,
+        });
+        console.log(
+          "[e2e] getClaimRewardUsdbAmount (TESTUSDC manager, USDB raw):",
+          amount.toString(),
+        );
+        report("getClaimRewardUsdbAmount (TESTUSDC manager)", {
+          sender: TESTUSDC_MANAGER_ADDRESS,
+          amount: amount.toString(),
+        });
+        expect(typeof amount).toBe("bigint");
+        expect(amount > 0n).toBe(true);
+      },
+    );
   });
 
   describe("getClaimRewardUsdbAmount (testnet)", () => {
@@ -213,7 +245,7 @@ describe("StableLayerSDK", () => {
 
     it("returns 0n without running claim simulation", async () => {
       const amount = await testnetSdk.getClaimRewardUsdbAmount({
-        stableCoinType: BTC_USD_TYPE,
+        stableCoinType: TEST_USDC_STABLE_TYPE,
         sender: TEST_ACCOUNT,
       });
       expect(amount).toBe(0n);
