@@ -256,15 +256,11 @@ export class StableLayerClient {
   }
 
   private async getBucketSavingPool(tx: Transaction) {
-    return Promise.resolve(
-      this.bucketClient.savingPoolObj(tx, { lpType: constants.SAVING_TYPE }),
-    );
+    return Promise.resolve(this.bucketClient.savingPoolObj(tx, { lpType: constants.SAVING_TYPE }));
   }
 
   private async getBucketPSMPool(tx: Transaction) {
-    return Promise.resolve(
-      this.bucketClient.psmPoolObj(tx, { coinType: constants.USDC_TYPE }),
-    );
+    return Promise.resolve(this.bucketClient.psmPoolObj(tx, { coinType: constants.USDC_TYPE }));
   }
 
   private async checkResponse({

@@ -40,20 +40,20 @@ For custom RPC or Bucket config overrides, use [references/initialization-varian
 
 ## Core API
 
-| Goal | Method | Notes |
-| --- | --- | --- |
-| Mint stablecoin from USDC | `buildMintTx` | Input includes `usdcCoin`, optional returned coin with `autoTransfer: false` |
-| Burn stablecoin to USDC | `buildBurnTx` | Must pass either `amount` or `all: true` |
-| Claim rewards | `buildClaimTx` | Returns reward coin when `autoTransfer: false` |
-| Query global supply | `getTotalSupply` | Reads `STABLE_REGISTRY.total_supply` |
-| Query supply by type | `getTotalSupplyByCoinType` | Reads registry dynamic field by `TypeName` |
+| Goal                      | Method                     | Notes                                                                        |
+| ------------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| Mint stablecoin from USDC | `buildMintTx`              | Input includes `usdcCoin`, optional returned coin with `autoTransfer: false` |
+| Burn stablecoin to USDC   | `buildBurnTx`              | Must pass either `amount` or `all: true`                                     |
+| Claim rewards             | `buildClaimTx`             | Returns reward coin when `autoTransfer: false`                               |
+| Query global supply       | `getTotalSupply`           | Reads `STABLE_REGISTRY.total_supply`                                         |
+| Query supply by type      | `getTotalSupplyByCoinType` | Reads registry dynamic field by `TypeName`                                   |
 
 ## Common Integration Patterns
 
 ### Mint
 
 ```typescript
-import { Transaction, coinWithBalance } from "@mysten/sui/transactions";
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 
 const tx = new Transaction();
 await client.buildMintTx({

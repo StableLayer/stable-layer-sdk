@@ -130,10 +130,10 @@ const result = await suiClient.signAndExecuteTransaction({
 
 Creates a client with config fetched from chain (via Bucket Protocol SDK). Returns `Promise<StableLayerClient>`.
 
-| Parameter        | Type       | Description                                      |
-| ---------------- | ---------- | ------------------------------------------------ |
-| `config.network` | `"mainnet"`| Sui network (mainnet only; testnet not supported) |
-| `config.sender`  | `string`   | Default sender address                            |
+| Parameter        | Type        | Description                                       |
+| ---------------- | ----------- | ------------------------------------------------- |
+| `config.network` | `"mainnet"` | Sui network (mainnet only; testnet not supported) |
+| `config.sender`  | `string`    | Default sender address                            |
 
 ### Transaction Methods
 

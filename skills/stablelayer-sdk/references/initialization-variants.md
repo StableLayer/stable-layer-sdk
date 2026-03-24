@@ -17,8 +17,8 @@ const client = await StableLayerClient.initialize({
 ## 2) Inject a Prebuilt SuiGrpcClient
 
 ```typescript
-import { StableLayerClient } from "stable-layer-sdk";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
+import { StableLayerClient } from "stable-layer-sdk";
 
 const suiClient = new SuiGrpcClient({
   network: "mainnet",
