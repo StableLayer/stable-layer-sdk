@@ -2,8 +2,10 @@ import type { ConfigType } from "@bucket-protocol/sdk";
 import type { SuiGrpcClient } from "@mysten/sui/grpc";
 import { Transaction, TransactionArgument, TransactionResult } from "@mysten/sui/transactions";
 
+export type Network = "mainnet" | "testnet";
+
 export interface StableLayerConfig {
-  network: "mainnet" | "testnet";
+  network: Network;
   sender: string;
   /** Custom RPC URL. Falls back to SUI_GRPC_URL env or default fullnode URL. */
   baseUrl?: string;
@@ -13,6 +15,10 @@ export interface StableLayerConfig {
   configObjectId?: string;
   /** Config overrides passed to BucketClient.initialize (e.g. PRICE_SERVICE_ENDPOINT). */
   configOverrides?: Partial<ConfigType>;
+  /** Testnet: optional mock_farm registry, package ID, and mock USDB type for claim preview. */
+  mockFarmRegistryId?: string;
+  mockFarmPackageId?: string;
+  mockUsdbCoinType?: string;
 }
 
 export interface MintTransactionParams {
@@ -38,6 +44,21 @@ export interface ClaimTransactionParams {
   stableCoinType: string;
   sender?: string;
   autoTransfer?: boolean;
+}
+
+export interface ClaimRewardUsdbAmountParams {
+  stableCoinType: string;
+  sender: string;
+}
+
+export interface SetMaxSupplyTransactionParams {
+  tx: Transaction;
+  registry: string;
+  factoryCapId: string;
+  maxSupply: bigint;
+  stableCoinType: string;
+  usdCoinType: string;
+  sender?: string;
 }
 
 export type CoinResult = TransactionResult | TransactionResult[number];

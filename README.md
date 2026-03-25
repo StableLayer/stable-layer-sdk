@@ -14,16 +14,18 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 import { StableLayerClient } from "stable-layer-sdk";
 
 const client = await StableLayerClient.initialize({
-  network: "mainnet",
+  network: "mainnet", // or "testnet" (mint/burn/claim use mock_farm; see src/libs/constants.testnet.ts)
   sender: "0xYOUR_ADDRESS",
 });
 ```
+
+Testnet republish overrides: optional `mockFarmRegistryId`, `mockFarmPackageId`, `mockUsdbCoinType` on `initialize`.
 
 ## Examples
 
 ### Mint Stablecoins
 
-Deposit USDC to mint stablecoins. The SDK builds a transaction that mints via Stable Layer and deposits into the vault farm.
+Deposit USDC to mint stablecoins. The SDK builds a transaction that mints via Stable Layer and deposits into the vault farm (mainnet); on testnet, flow uses `mock_farm::receive` after mint.
 
 ```typescript
 import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
@@ -78,7 +80,7 @@ await client.buildBurnTx({
 
 ### Claim Rewards
 
-Claim accumulated yield farming rewards.
+Claim yield (mainnet: vault farm; testnet: `mock_farm::claim`).
 
 ```typescript
 const tx = new Transaction();
@@ -122,6 +124,10 @@ const result = await suiClient.signAndExecuteTransaction({
 });
 ```
 
+## Testing
+
+`pnpm exec vitest run` hits mainnet RPC from `test/e2e/`. Use `QUERY_OUTPUT=1` or `pnpm query-output` for extra simulation logs. Optional `E2E_ASSERT_POSITIVE=1` asserts a positive USDB preview in the manager `getClaimRewardUsdbAmount` e2e (default only checks type and non-negative amount so CI does not depend on live accrued rewards). Opt-in live testnet mint/burn: `pnpm test:e2e:testnet` (env vars in `test/e2e/testnet-mint-burn.e2e.ts`).
+
 ## API
 
 ### `StableLayerClient.initialize(config)`
@@ -133,17 +139,23 @@ Creates a client with config fetched from chain (via Bucket Protocol SDK). Retur
 | `config.network` | `"mainnet" \| "testnet"` | Sui network            |
 | `config.sender`  | `string`                 | Default sender address |
 
-### Transaction Methods
+### Transaction & query methods
 
 All methods accept a `tx` (Transaction) and optional `sender` to override the default. Set `autoTransfer: false` to get the resulting coin back instead of auto-transferring.
 
-| Method                           | Description                               |
-| -------------------------------- | ----------------------------------------- |
-| `buildMintTx(params)`            | Mint stablecoins from USDC                |
-| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC           |
-| `buildClaimTx(params)`           | Claim yield farming rewards               |
-| `getTotalSupply()`               | Get total supply from registry            |
-| `getTotalSupplyByCoinType(type)` | Get total supply for a specific coin type |
+| Method                             | Description                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `buildMintTx(params)`              | Mint from USDC (testnet: + `mock_farm::receive`)                                             |
+| `buildBurnTx(params)`              | Burn to USDC (testnet: `mock_farm::pay`)                                                     |
+| `buildClaimTx(params)`             | Claim rewards (testnet: `mock_farm::claim`)                                                  |
+| `buildSetMaxSupplyTx(params)`      | Update max supply                                                                            |
+| `getClaimRewardUsdbAmount(params)` | Simulate `buildClaimTx`; sum USDB credit (testnet: mock USDB type) — throws if dry-run fails |
+| `getTotalSupply()`                 | Total supply from registry                                                                   |
+| `getTotalSupplyByCoinType(type)`   | Supply for one coin type                                                                     |
+
+### `getConstants(network)` / `StableLayerClient.getConstants`
+
+Returns protocol object IDs and type strings for `mainnet` or `testnet` without building a client.
 
 ## License
 

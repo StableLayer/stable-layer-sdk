@@ -2,23 +2,43 @@ import { BucketClient } from "@bucket-protocol/sdk";
 import { bcs } from "@mysten/sui/bcs";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { coinWithBalance, Transaction, TransactionArgument } from "@mysten/sui/transactions";
+import { normalizeStructTag, SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
 
-import { fulfillBurn, mint, requestBurn } from "./generated/stable_layer/stable_layer.js";
+import {
+  fulfillBurn,
+  mint,
+  requestBurn,
+  setMaxSupply,
+} from "./generated/stable_layer/stable_layer.js";
 import { claim, pay, receive } from "./generated/stable_vault_farm/stable_vault_farm.js";
 import { release } from "./generated/yield_usdb/yield_usdb.js";
 import {
   BurnTransactionParams,
+  ClaimRewardUsdbAmountParams,
   ClaimTransactionParams,
   CoinResult,
   MintTransactionParams,
+  SetMaxSupplyTransactionParams,
   StableLayerConfig,
 } from "./interface.js";
-import * as constants from "./libs/constants.js";
+import { getConstants } from "./libs/constants.js";
 
 export class StableLayerClient {
   private bucketClient: BucketClient;
   private suiClient: SuiGrpcClient;
   private sender: string;
+  private network: import("./interface.js").Network;
+  private mockFarmRegistryId?: string;
+  private mockFarmPackageId?: string;
+  private mockUsdbCoinType?: string;
+
+  static getConstants(network: import("./interface.js").Network) {
+    return getConstants(network);
+  }
+
+  getConstants() {
+    return getConstants(this.network);
+  }
 
   static async initialize(config: StableLayerConfig): Promise<StableLayerClient> {
     const defaultBaseUrl = `https://fullnode.${config.network}.sui.io:443`;
@@ -46,6 +66,26 @@ export class StableLayerClient {
     this.bucketClient = bucketClient;
     this.suiClient = suiClient;
     this.sender = config.sender;
+    this.network = config.network;
+    this.mockFarmRegistryId = config.mockFarmRegistryId;
+    this.mockFarmPackageId = config.mockFarmPackageId;
+    this.mockUsdbCoinType = config.mockUsdbCoinType;
+  }
+
+  private getMockFarmPackageId(): string {
+    const c = this.getConstants();
+    const id = (this.mockFarmPackageId ?? c.MOCK_FARM_PACKAGE_ID)?.trim();
+    if (!id) {
+      throw new Error(
+        "StableLayerClient: missing mock farm package (set mockFarmPackageId or MOCK_FARM_PACKAGE_ID in testnet constants).",
+      );
+    }
+    return id;
+  }
+
+  private getMockFarmEntityType(): string {
+    const c = this.getConstants();
+    return c.STABLE_VAULT_FARM_ENTITY_TYPE || `${this.getMockFarmPackageId()}::farm::MockFarmEntity`;
   }
 
   async buildMintTx({
@@ -56,6 +96,40 @@ export class StableLayerClient {
     autoTransfer = true,
   }: MintTransactionParams): Promise<CoinResult | undefined> {
     tx.setSender(sender ?? this.sender);
+    const constants = this.getConstants();
+
+    if (this.network === "testnet") {
+      const farmRegistry = this.mockFarmRegistryId ?? constants.MOCK_FARM_REGISTRY;
+      const pkg = this.getMockFarmPackageId();
+      if (!farmRegistry) {
+        throw new Error(
+          "buildMintTx (testnet): missing mock farm registry (mockFarmRegistryId or MOCK_FARM_REGISTRY).",
+        );
+      }
+      const stableTag = normalizeStructTag(stableCoinType);
+      const usdTag = normalizeStructTag(constants.USDC_TYPE);
+      const farmEntityTag = normalizeStructTag(this.getMockFarmEntityType());
+      const [stableCoin, loan] = mint({
+        package: constants.STABLE_LAYER_PACKAGE_ID,
+        arguments: {
+          registry: constants.STABLE_REGISTRY,
+          uCoin: usdcCoin,
+        },
+        typeArguments: [stableTag, usdTag, farmEntityTag],
+      })(tx);
+
+      tx.moveCall({
+        target: `${pkg}::farm::receive`,
+        typeArguments: [stableTag, usdTag],
+        arguments: [tx.object(farmRegistry), loan, tx.object(SUI_CLOCK_OBJECT_ID)],
+      });
+
+      if (autoTransfer) {
+        tx.transferObjects([stableCoin], sender ?? this.sender);
+        return;
+      }
+      return stableCoin;
+    }
 
     const [stableCoin, loan] = mint({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -83,15 +157,15 @@ export class StableLayerClient {
         farm: constants.STABLE_VAULT_FARM,
         loan,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx),
-        psmPool: this.getBucketPSMPool(tx),
-        savingPool: this.getBucketSavingPool(tx),
+        usdbTreasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        psmPool: await this.getBucketPSMPool(tx),
+        savingPool: await this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
         uPrice,
       },
     })(tx);
 
-    this.checkResponse({ tx, response: depositResponse, type: "deposit" });
+    await this.checkResponse({ tx, response: depositResponse, type: "deposit" });
 
     if (autoTransfer) {
       tx.transferObjects([stableCoin], sender ?? this.sender);
@@ -127,7 +201,51 @@ export class StableLayerClient {
         : amount!,
       type: stableCoinType,
     });
-    this.releaseRewards(tx);
+
+    const constants = this.getConstants();
+
+    if (this.network === "testnet") {
+      const farmRegistry = this.mockFarmRegistryId ?? constants.MOCK_FARM_REGISTRY;
+      const pkg = this.getMockFarmPackageId();
+      if (!farmRegistry) {
+        throw new Error(
+          "buildBurnTx (testnet): missing mock farm registry (mockFarmRegistryId or MOCK_FARM_REGISTRY).",
+        );
+      }
+      const stableTag = normalizeStructTag(stableCoinType);
+      const usdTag = normalizeStructTag(constants.USDC_TYPE);
+      const burnRequest = requestBurn({
+        package: constants.STABLE_LAYER_PACKAGE_ID,
+        arguments: {
+          registry: constants.STABLE_REGISTRY,
+          stableCoin: btcUsdCoin,
+        },
+        typeArguments: [stableTag, usdTag],
+      })(tx);
+
+      tx.moveCall({
+        target: `${pkg}::farm::pay`,
+        typeArguments: [stableTag, usdTag],
+        arguments: [tx.object(farmRegistry), tx.object(SUI_CLOCK_OBJECT_ID), burnRequest],
+      });
+
+      const usdcCoin = fulfillBurn({
+        package: constants.STABLE_LAYER_PACKAGE_ID,
+        arguments: {
+          registry: constants.STABLE_REGISTRY,
+          burnRequest,
+        },
+        typeArguments: [stableTag, usdTag],
+      })(tx);
+
+      if (autoTransfer) {
+        tx.transferObjects([usdcCoin], sender ?? this.sender);
+        return;
+      }
+      return usdcCoin;
+    }
+
+    await this.releaseRewards(tx);
 
     const burnRequest = requestBurn({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -148,9 +266,9 @@ export class StableLayerClient {
         farm: constants.STABLE_VAULT_FARM,
         request: burnRequest,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx),
-        psmPool: this.getBucketPSMPool(tx),
-        savingPool: this.getBucketSavingPool(tx),
+        usdbTreasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        psmPool: await this.getBucketPSMPool(tx),
+        savingPool: await this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
         uPrice,
       },
@@ -163,7 +281,7 @@ export class StableLayerClient {
       ],
     })(tx);
 
-    this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
+    await this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
 
     const usdcCoin = fulfillBurn({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -190,16 +308,44 @@ export class StableLayerClient {
   }: ClaimTransactionParams): Promise<CoinResult | undefined> {
     tx.setSender(sender ?? this.sender);
 
-    this.releaseRewards(tx);
+    if (this.network === "testnet") {
+      const constants = this.getConstants();
+      const farmRegistry = this.mockFarmRegistryId ?? constants.MOCK_FARM_REGISTRY;
+      const pkg = this.getMockFarmPackageId();
+      if (!farmRegistry) {
+        throw new Error(
+          "buildClaimTx (testnet): missing mock farm registry (mockFarmRegistryId or MOCK_FARM_REGISTRY).",
+        );
+      }
+      const stableTag = normalizeStructTag(stableCoinType);
+      const usdTag = normalizeStructTag(constants.USDC_TYPE);
+      const rewardCoin = tx.moveCall({
+        target: `${pkg}::farm::claim`,
+        typeArguments: [stableTag, usdTag],
+        arguments: [
+          tx.object(farmRegistry),
+          tx.object(constants.STABLE_REGISTRY),
+          tx.object(SUI_CLOCK_OBJECT_ID),
+        ],
+      });
+      if (autoTransfer) {
+        tx.transferObjects([rewardCoin], sender ?? this.sender);
+        return;
+      }
+      return rewardCoin;
+    }
 
+    await this.releaseRewards(tx);
+
+    const constants = this.getConstants();
     const [rewardCoin, withdrawResponse] = claim({
       package: constants.STABLE_VAULT_FARM_PACKAGE_ID,
       arguments: {
         stableRegistry: constants.STABLE_REGISTRY,
         farm: constants.STABLE_VAULT_FARM,
         stableVault: constants.STABLE_VAULT,
-        usdbTreasury: this.bucketClient.treasury(tx),
-        savingPool: this.getBucketSavingPool(tx),
+        usdbTreasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        savingPool: await this.getBucketSavingPool(tx),
         yieldVault: constants.YIELD_VAULT,
       },
       typeArguments: [
@@ -211,7 +357,7 @@ export class StableLayerClient {
       ],
     })(tx);
 
-    this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
+    await this.checkResponse({ tx, response: withdrawResponse, type: "withdraw" });
 
     if (autoTransfer) {
       tx.transferObjects([rewardCoin], sender ?? this.sender);
@@ -221,7 +367,70 @@ export class StableLayerClient {
     }
   }
 
+  async getClaimRewardUsdbAmount({
+    stableCoinType,
+    sender,
+  }: ClaimRewardUsdbAmountParams): Promise<bigint> {
+    const tx = new Transaction();
+    await this.buildClaimTx({
+      tx,
+      stableCoinType,
+      sender,
+      autoTransfer: true,
+    });
+
+    const usdbType =
+      this.network === "testnet"
+        ? normalizeStructTag(this.mockUsdbCoinType ?? (this.getConstants().MOCK_USDB_TYPE || `${this.getMockFarmPackageId()}::usdb::USDB`))
+        : normalizeStructTag(await this.bucketClient.getUsdbCoinType());
+    const res = await this.suiClient.simulateTransaction({
+      transaction: tx,
+      include: { balanceChanges: true },
+    });
+
+    if (res.$kind !== "Transaction") {
+      throw new Error(
+        "StableLayerClient.getClaimRewardUsdbAmount: dry-run did not succeed; cannot infer claimable USDB.",
+      );
+    }
+
+    const changes = res.Transaction?.balanceChanges ?? [];
+    const addr = sender.toLowerCase();
+    let sum = 0n;
+    for (const bc of changes) {
+      if (bc.address.toLowerCase() !== addr) continue;
+      if (normalizeStructTag(bc.coinType) !== usdbType) continue;
+      const amt = BigInt(bc.amount);
+      if (amt > 0n) sum += amt;
+    }
+    return sum;
+  }
+
+  buildSetMaxSupplyTx({
+    tx,
+    registry,
+    factoryCapId,
+    maxSupply,
+    stableCoinType,
+    usdCoinType,
+    sender,
+  }: SetMaxSupplyTransactionParams): void {
+    tx.setSender(sender ?? this.sender);
+    const constants = this.getConstants();
+
+    setMaxSupply({
+      package: constants.STABLE_LAYER_PACKAGE_ID,
+      arguments: {
+        registry,
+        FactoryCap: factoryCapId,
+        maxSupply,
+      },
+      typeArguments: [stableCoinType, usdCoinType],
+    })(tx);
+  }
+
   async getTotalSupply(): Promise<string | undefined> {
+    const constants = this.getConstants();
     const result = await this.suiClient.getObject({
       objectId: constants.STABLE_REGISTRY,
       include: { json: true },
@@ -235,6 +444,7 @@ export class StableLayerClient {
     const TypeName = bcs.struct("TypeName", { name: bcs.string() });
     const nameBcs = TypeName.serialize({ name: stableCoinType.slice(2) }).toBytes();
 
+    const constants = this.getConstants();
     const result = await this.suiClient.core.getDynamicObjectField({
       parentId: constants.STABLE_REGISTRY,
       name: {
@@ -251,19 +461,19 @@ export class StableLayerClient {
     return json?.treasury_cap?.total_supply?.value ?? undefined;
   }
 
-  private getBucketSavingPool(tx: Transaction) {
-    return this.bucketClient.savingPoolObj(tx, {
-      lpType: constants.SAVING_TYPE,
-    });
+  private async getBucketSavingPool(tx: Transaction) {
+    return Promise.resolve(
+      this.bucketClient.savingPoolObj(tx, { lpType: this.getConstants().SAVING_TYPE }),
+    );
   }
 
-  private getBucketPSMPool(tx: Transaction) {
-    return this.bucketClient.psmPoolObj(tx, {
-      coinType: constants.USDC_TYPE,
-    });
+  private async getBucketPSMPool(tx: Transaction) {
+    return Promise.resolve(
+      this.bucketClient.psmPoolObj(tx, { coinType: this.getConstants().USDC_TYPE }),
+    );
   }
 
-  private checkResponse({
+  private async checkResponse({
     tx,
     response,
     type,
@@ -272,35 +482,50 @@ export class StableLayerClient {
     response: TransactionArgument;
     type: "deposit" | "withdraw";
   }) {
+    const lpType = this.getConstants().SAVING_TYPE;
     if (type === "deposit") {
-      return this.bucketClient.checkDepositResponse(tx, {
-        lpType: constants.SAVING_TYPE,
-        depositResponse: response,
-      });
+      return Promise.resolve(
+        this.bucketClient.checkDepositResponse(tx, {
+          lpType,
+          depositResponse: response,
+        }),
+      );
     } else {
-      return this.bucketClient.checkWithdrawResponse(tx, {
-        lpType: constants.SAVING_TYPE,
-        withdrawResponse: response,
-      });
+      return Promise.resolve(
+        this.bucketClient.checkWithdrawResponse(tx, {
+          lpType,
+          withdrawResponse: response,
+        }),
+      );
     }
   }
 
-  private releaseRewards(tx: Transaction) {
+  private async releaseRewards(tx: Transaction) {
+    const constants = this.getConstants();
     const depositResponse = release({
       package: constants.YIELD_USDB_PACKAGE_ID,
       arguments: {
         vault: constants.YIELD_VAULT,
-        treasury: this.bucketClient.treasury(tx),
-        savingPool: this.bucketClient.savingPoolObj(tx, {
-          lpType: constants.SAVING_TYPE,
-        }),
+        treasury: await Promise.resolve(this.bucketClient.treasury(tx)),
+        savingPool: await Promise.resolve(
+          this.bucketClient.savingPoolObj(tx, { lpType: constants.SAVING_TYPE }),
+        ),
       },
       typeArguments: [constants.YUSDB_TYPE, constants.SAVING_TYPE],
     })(tx);
 
-    this.bucketClient.checkDepositResponse(tx, {
-      depositResponse,
-      lpType: constants.SAVING_TYPE,
-    });
+    await Promise.resolve(
+      this.bucketClient.checkDepositResponse(tx, {
+        depositResponse,
+        lpType: constants.SAVING_TYPE,
+      }),
+    );
   }
 }
+
+export * from "./libs/constants.js";
+export {
+  STABLE_REGISTRY_MAINNET_ALT,
+  STABLE_LAYER_PACKAGE_MAINNET_ALT,
+} from "./libs/constants.mainnet.js";
+export type { ClaimRewardUsdbAmountParams, SetMaxSupplyTransactionParams } from "./interface.js";
