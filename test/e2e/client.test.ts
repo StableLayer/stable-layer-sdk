@@ -39,13 +39,13 @@ function extractSimulateSummary(result: {
 
 const BTC_USD_TYPE =
   "0x6d9fc33611f4881a3f5c0cd4899d95a862236ce52b3a38fef039077b0c5b5834::btc_usdc::BtcUSDC";
-/** Mainnet TESTUSDC — listed on StableRegistry (used for getClaimRewardUsdbAmount e2e) */
 const TEST_USDC_STABLE_TYPE =
   "0x71c0f8de08bffad0c234dc26c242d7fc06999e5c75897b67c15c259315789a4b::testusdc::TESTUSDC";
 const TEST_ACCOUNT = "0x2b986d2381347d9e1c903167cf9b36da5f8eaba6f0db44e0c60e40ea312150ca";
-/** TESTUSDC factory manager on mainnet — `getClaimRewardUsdbAmount` only shows USDB delta for this sender when they can `buildClaimTx` */
 const TESTUSDC_MANAGER_ADDRESS =
   "0x006d980cadd43c778e628201b45cfd3ba6e1047c65f67648a88f635108ffd6eb";
+const TESTNET_TESTUSDC_STABLE_TYPE =
+  "0x8d40b0c2d0fb3ad5797f273d44f2f4fea2612c7ecbd06e6015984654f52ff36d::testusdc::TESTUSDC";
 
 const testConfig = {
   network: "mainnet" as const,
@@ -106,7 +106,6 @@ describe("StableLayerSDK", () => {
       expect(btcUsdcCoin).toBeDefined();
       if (btcUsdcCoin) tx.transferObjects([btcUsdcCoin], TEST_ACCOUNT);
 
-      // Dev inspect the transaction to validate it's well-formed
       const result = await suiClient.simulateTransaction({
         transaction: tx,
         include: { balanceChanges: true },
@@ -201,7 +200,6 @@ describe("StableLayerSDK", () => {
             sender: TEST_ACCOUNT,
           }),
         ).rejects.toThrow(/dry-run did not succeed/);
-        console.log("[e2e] getClaimRewardUsdbAmount (random sender): rejected as expected");
         report("getClaimRewardUsdbAmount (non-manager)", { sender: TEST_ACCOUNT, rejected: true });
       },
     );
@@ -214,10 +212,6 @@ describe("StableLayerSDK", () => {
           stableCoinType: TEST_USDC_STABLE_TYPE,
           sender: TESTUSDC_MANAGER_ADDRESS,
         });
-        console.log(
-          "[e2e] getClaimRewardUsdbAmount (TESTUSDC manager, USDB raw):",
-          amount.toString(),
-        );
         report("getClaimRewardUsdbAmount (TESTUSDC manager)", {
           sender: TESTUSDC_MANAGER_ADDRESS,
           amount: amount.toString(),
@@ -228,22 +222,68 @@ describe("StableLayerSDK", () => {
     );
   });
 
-  describe("getClaimRewardUsdbAmount (testnet)", () => {
+  describe("StableLayerSDK (testnet mock farm)", () => {
     let testnetSdk: StableLayerClient;
+    let testnetSui: SuiGrpcClient;
 
     beforeAll(async () => {
       testnetSdk = await StableLayerClient.initialize({
         network: "testnet",
         sender: TEST_ACCOUNT,
       });
+      testnetSui = new SuiGrpcClient({
+        network: "testnet",
+        baseUrl: "https://fullnode.testnet.sui.io:443",
+      });
     }, 60_000);
 
-    it("returns 0n without running claim simulation", async () => {
-      const amount = await testnetSdk.getClaimRewardUsdbAmount({
-        stableCoinType: TEST_USDC_STABLE_TYPE,
+    it("throws when sender cannot complete mock-farm claim dry-run (e.g. not factory manager)", async () => {
+      await expect(
+        testnetSdk.getClaimRewardUsdbAmount({
+          stableCoinType: TESTNET_TESTUSDC_STABLE_TYPE,
+          sender: TEST_ACCOUNT,
+        }),
+      ).rejects.toThrow(/dry-run did not succeed/);
+    });
+
+    it("buildMintTx composes stable_layer::mint + mock_farm::receive", async () => {
+      const tx = new Transaction();
+      const usdc = StableLayerClient.getConstants("testnet").USDC_TYPE;
+      const stableOut = await testnetSdk.buildMintTx({
+        tx,
+        amount: 1n,
+        sender: TEST_ACCOUNT,
+        stableCoinType: TESTNET_TESTUSDC_STABLE_TYPE,
+        usdcCoin: coinWithBalance({ balance: 1n, type: usdc })(tx),
+        autoTransfer: false,
+      });
+      expect(stableOut).toBeDefined();
+    });
+
+    it("buildBurnTx composes request_burn + mock_farm::pay + fulfill_burn", async () => {
+      const tx = new Transaction();
+      await testnetSdk.buildBurnTx({
+        tx,
+        stableCoinType: TESTNET_TESTUSDC_STABLE_TYPE,
+        amount: 1n,
         sender: TEST_ACCOUNT,
       });
-      expect(amount).toBe(0n);
+    });
+
+    it("buildClaimTx composes mock_farm::claim (non-manager dry-run fails)", async () => {
+      const tx = new Transaction();
+      await testnetSdk.buildClaimTx({
+        tx,
+        stableCoinType: TESTNET_TESTUSDC_STABLE_TYPE,
+        sender: TEST_ACCOUNT,
+      });
+
+      const result = await testnetSui.simulateTransaction({
+        transaction: tx,
+        include: { balanceChanges: true },
+      });
+      report("testnet buildClaimTx", { simulate: extractSimulateSummary(result) });
+      expect(result.$kind).toBe("FailedTransaction");
     });
   });
 });

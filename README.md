@@ -12,18 +12,18 @@ npm install stable-layer-sdk @mysten/sui @mysten/bcs
 
 | Feature                    | Mainnet | Testnet |
 | -------------------------- | ------- | ------- |
-| `buildMintTx`              | ✅      | ❌      |
-| `buildBurnTx`              | ✅      | ❌      |
-| `buildClaimTx`             | ✅      | ❌      |
+| `buildMintTx`              | ✅      | ✅ mock_farm (`receive`) |
+| `buildBurnTx`              | ✅      | ✅ mock_farm (`pay`) |
+| `buildClaimTx`             | ✅      | ✅ mock_farm |
 | `buildSetMaxSupplyTx`      | ✅      | ✅      |
 | `getTotalSupply`           | ✅      | ✅      |
 | `getTotalSupplyByCoinType` | ✅      | ✅      |
-| `getClaimRewardUsdbAmount` | ✅      | ⚪ `0n` |
+| `getClaimRewardUsdbAmount` | ✅      | ✅ mock USDB preview |
 | `getConstants(network)`    | ✅      | ✅      |
 
-Testnet uses DummyFarm + Circle **USDC** on Sui testnet (`getConstants("testnet").USDC_TYPE`); Mint/Burn/Claim require the full vault farm stack (mainnet only). `getClaimRewardUsdbAmount` on testnet always returns `0n` (no simulation).
+**Same API for both networks:** pass `network: "mainnet" | "testnet"` to `StableLayerClient.initialize`. Mainnet uses Bucket + `stable_vault_farm`; testnet uses `mock_farm` (`receive` / `pay` / `claim`) with Circle USDC — see [`src/libs/constants.testnet.ts`](src/libs/constants.testnet.ts). After republishing `mock_farm`, set `mockFarmRegistryId`, `mockFarmPackageId`, and optionally `mockUsdbCoinType` on `initialize`.
 
-`getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive Bucket **USDB** balance deltas for `sender`; use it to preview claimable rewards in UIs. Returns **`0n` only when the dry-run succeeds and there is no USDB credit** for `sender`. **Throws** if the dry-run does not complete as a successful transaction, or on RPC/build errors—use `try/catch` (or React Query `isError`) so the UI can distinguish errors from “zero rewards”.
+`getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive **USDB** balance deltas for `sender` (mainnet: Bucket USDB; testnet: `MOCK_USDB_TYPE`). Returns `0n` when the dry-run succeeds but there is no USDB credit for `sender`. **Throws** when the dry-run does not complete successfully, on RPC/network failures, or while building/simulating (callers should `try/catch` or surface errors in the UI).
 
 ## Quick Start
 
@@ -36,7 +36,7 @@ const client = await StableLayerClient.initialize({
   sender: "0xYOUR_ADDRESS",
 });
 
-// Testnet (set_max_supply, supply queries only)
+// Testnet (mock_farm mint/burn/claim; optional registry / USDB type overrides)
 const testnetClient = await StableLayerClient.initialize({
   network: "testnet",
   sender: "0xYOUR_ADDRESS",
@@ -102,7 +102,7 @@ await client.buildBurnTx({
 
 ### Claim Rewards
 
-Claim accumulated yield farming rewards. **Mainnet only.**
+Claim yield (mainnet: vault farm; testnet: `mock_farm::claim`).
 
 ```typescript
 const tx = new Transaction();
@@ -115,18 +115,13 @@ await client.buildClaimTx({
 
 ### Preview claimable USDB (simulation)
 
-**Mainnet only** (testnet returns `0n`). Runs a transaction simulation identical to `buildClaimTx` and reads how much Bucket USDB would be credited to `sender` from balance changes. A **failed** dry-run (abort, lack of permission, etc.) **throws** instead of returning `0n`, so `0n` means “simulation OK, nothing to claim.”
+Dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive USDB balance changes for `sender`. Mainnet uses Bucket USDB; testnet uses mock `MOCK_USDB_TYPE`. Use `try/catch` for RPC or dry-run failures.
 
 ```typescript
-try {
-  const usdbBaseUnits = await client.getClaimRewardUsdbAmount({
-    stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
-    sender: "0xYOUR_ADDRESS",
-  });
-  // USDB uses 6 decimals on-chain
-} catch {
-  // preview unavailable: RPC error or simulation did not succeed
-}
+const usdbBaseUnits = await client.getClaimRewardUsdbAmount({
+  stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
+  sender: "0xYOUR_ADDRESS",
+});
 ```
 
 ### Set Max Supply
@@ -183,8 +178,18 @@ const result = await suiClient.signAndExecuteTransaction({
 
 E2E tests live in `test/e2e/` and call mainnet RPC. Run once: `pnpm exec vitest run`.
 
-- **`QUERY_OUTPUT=1`** (or `pnpm query-output`): prints extra `report()` JSON for mint/burn/claim simulations.
-- **`getClaimRewardUsdbAmount`** e2e: non-manager sender expects **rejection** (failed dry-run); TESTUSDC factory manager expects **`> 0`**; both cases **`console.log`** when the call settles without env vars.
+- **`QUERY_OUTPUT=1`** (or `pnpm query-output`): extra simulation JSON from `report()`.
+
+**Optional live testnet mint → burn** (skipped unless env is set):
+
+```bash
+E2E_TESTNET_MINT_BURN=1 \
+E2E_TESTNET_STABLE_COIN_TYPE='0x...::module::COIN' \
+E2E_TESTNET_PRIVATE_KEY='suiprivkey...' \
+pnpm test:e2e:testnet
+```
+
+See [`test/e2e/testnet-mint-burn.e2e.ts`](test/e2e/testnet-mint-burn.e2e.ts) for optional `E2E_TESTNET_AMOUNT` and mock farm overrides.
 
 ## API
 
@@ -203,13 +208,13 @@ All `build*` methods accept a `tx` (Transaction) and optional `sender`. Set `aut
 
 | Method                           | Description                     | Mainnet | Testnet |
 | -------------------------------- | ------------------------------- | ------- | ------- |
-| `buildMintTx(params)`            | Mint stablecoins from USDC      | ✅      | ❌      |
-| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC | ✅      | ❌      |
-| `buildClaimTx(params)`           | Claim yield farming rewards     | ✅      | ❌      |
+| `buildMintTx(params)`            | Mint stablecoins from USDC      | ✅      | ✅ mock_farm |
+| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC | ✅      | ✅ mock_farm |
+| `buildClaimTx(params)`           | Claim yield farming rewards     | ✅      | ✅ mock_farm |
 | `buildSetMaxSupplyTx(params)`    | Update max supply of a coin     | ✅      | ✅      |
 | `getTotalSupply()`               | Total supply from registry      | ✅      | ✅      |
 | `getTotalSupplyByCoinType(type)` | Supply for a specific coin      | ✅      | ✅      |
-| `getClaimRewardUsdbAmount(p)`    | Preview USDB from claim (sim)   | ✅      | ⚪ `0n` |
+| `getClaimRewardUsdbAmount(p)`    | Preview USDB from claim (sim)   | ✅      | ✅ mock USDB |
 
 ### `getConstants(network)`
 

@@ -2,7 +2,7 @@ import { BucketClient } from "@bucket-protocol/sdk";
 import { bcs } from "@mysten/sui/bcs";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { coinWithBalance, Transaction, TransactionArgument } from "@mysten/sui/transactions";
-import { normalizeStructTag } from "@mysten/sui/utils";
+import { normalizeStructTag, SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
 
 import {
   fulfillBurn,
@@ -28,6 +28,9 @@ export class StableLayerClient {
   private suiClient: SuiGrpcClient;
   private sender: string;
   private network: import("./interface.js").Network;
+  private mockFarmRegistryId?: string;
+  private mockFarmPackageId?: string;
+  private mockUsdbCoinType?: string;
 
   static getConstants(network: import("./interface.js").Network) {
     return getConstants(network);
@@ -64,6 +67,24 @@ export class StableLayerClient {
     this.suiClient = suiClient;
     this.sender = config.sender;
     this.network = config.network;
+    this.mockFarmRegistryId = config.mockFarmRegistryId;
+    this.mockFarmPackageId = config.mockFarmPackageId;
+    this.mockUsdbCoinType = config.mockUsdbCoinType;
+  }
+
+  private getMockFarmPackageId(): string {
+    const c = this.getConstants();
+    const id = (this.mockFarmPackageId ?? c.MOCK_FARM_PACKAGE_ID)?.trim();
+    if (!id) {
+      throw new Error(
+        "StableLayerClient: missing mock farm package (set mockFarmPackageId or MOCK_FARM_PACKAGE_ID in testnet constants).",
+      );
+    }
+    return id;
+  }
+
+  private getMockFarmEntityType(): string {
+    return `${this.getMockFarmPackageId()}::farm::MockFarmEntity`;
   }
 
   async buildMintTx({
@@ -73,14 +94,41 @@ export class StableLayerClient {
     sender,
     autoTransfer = true,
   }: MintTransactionParams): Promise<CoinResult | undefined> {
-    if (this.network === "testnet") {
-      throw new Error(
-        "buildMintTx is mainnet-only. Testnet uses DummyFarm and does not have vault farm. " +
-          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet.",
-      );
-    }
     tx.setSender(sender ?? this.sender);
     const constants = this.getConstants();
+
+    if (this.network === "testnet") {
+      const farmRegistry = this.mockFarmRegistryId ?? constants.MOCK_FARM_REGISTRY;
+      const pkg = this.getMockFarmPackageId();
+      if (!farmRegistry) {
+        throw new Error(
+          "buildMintTx (testnet): missing mock farm registry (mockFarmRegistryId or MOCK_FARM_REGISTRY).",
+        );
+      }
+      const stableTag = normalizeStructTag(stableCoinType);
+      const usdTag = normalizeStructTag(constants.USDC_TYPE);
+      const farmEntityTag = normalizeStructTag(this.getMockFarmEntityType());
+      const [stableCoin, loan] = mint({
+        package: constants.STABLE_LAYER_PACKAGE_ID,
+        arguments: {
+          registry: constants.STABLE_REGISTRY,
+          uCoin: usdcCoin,
+        },
+        typeArguments: [stableTag, usdTag, farmEntityTag],
+      })(tx);
+
+      tx.moveCall({
+        target: `${pkg}::farm::receive`,
+        typeArguments: [stableTag, usdTag],
+        arguments: [tx.object(farmRegistry), loan, tx.object(SUI_CLOCK_OBJECT_ID)],
+      });
+
+      if (autoTransfer) {
+        tx.transferObjects([stableCoin], sender ?? this.sender);
+        return;
+      }
+      return stableCoin;
+    }
 
     const [stableCoin, loan] = mint({
       package: constants.STABLE_LAYER_PACKAGE_ID,
@@ -134,12 +182,6 @@ export class StableLayerClient {
     sender,
     autoTransfer = true,
   }: BurnTransactionParams): Promise<CoinResult | undefined> {
-    if (this.network === "testnet") {
-      throw new Error(
-        "buildBurnTx is mainnet-only. Testnet uses DummyFarm and does not have vault farm. " +
-          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet.",
-      );
-    }
     tx.setSender(sender ?? this.sender);
 
     if (!all && !amount) {
@@ -158,9 +200,52 @@ export class StableLayerClient {
         : amount!,
       type: stableCoinType,
     });
-    await this.releaseRewards(tx);
 
     const constants = this.getConstants();
+
+    if (this.network === "testnet") {
+      const farmRegistry = this.mockFarmRegistryId ?? constants.MOCK_FARM_REGISTRY;
+      const pkg = this.getMockFarmPackageId();
+      if (!farmRegistry) {
+        throw new Error(
+          "buildBurnTx (testnet): missing mock farm registry (mockFarmRegistryId or MOCK_FARM_REGISTRY).",
+        );
+      }
+      const stableTag = normalizeStructTag(stableCoinType);
+      const usdTag = normalizeStructTag(constants.USDC_TYPE);
+      const burnRequest = requestBurn({
+        package: constants.STABLE_LAYER_PACKAGE_ID,
+        arguments: {
+          registry: constants.STABLE_REGISTRY,
+          stableCoin: btcUsdCoin,
+        },
+        typeArguments: [stableTag, usdTag],
+      })(tx);
+
+      tx.moveCall({
+        target: `${pkg}::farm::pay`,
+        typeArguments: [stableTag, usdTag],
+        arguments: [tx.object(farmRegistry), tx.object(SUI_CLOCK_OBJECT_ID), burnRequest],
+      });
+
+      const usdcCoin = fulfillBurn({
+        package: constants.STABLE_LAYER_PACKAGE_ID,
+        arguments: {
+          registry: constants.STABLE_REGISTRY,
+          burnRequest,
+        },
+        typeArguments: [stableTag, usdTag],
+      })(tx);
+
+      if (autoTransfer) {
+        tx.transferObjects([usdcCoin], sender ?? this.sender);
+        return;
+      }
+      return usdcCoin;
+    }
+
+    await this.releaseRewards(tx);
+
     const burnRequest = requestBurn({
       package: constants.STABLE_LAYER_PACKAGE_ID,
       arguments: {
@@ -220,13 +305,34 @@ export class StableLayerClient {
     sender,
     autoTransfer = true,
   }: ClaimTransactionParams): Promise<CoinResult | undefined> {
-    if (this.network === "testnet") {
-      throw new Error(
-        "buildClaimTx is mainnet-only. Testnet uses DummyFarm and does not have yield vault. " +
-          "Use buildSetMaxSupplyTx, getTotalSupply, or getTotalSupplyByCoinType for testnet.",
-      );
-    }
     tx.setSender(sender ?? this.sender);
+
+    if (this.network === "testnet") {
+      const constants = this.getConstants();
+      const farmRegistry = this.mockFarmRegistryId ?? constants.MOCK_FARM_REGISTRY;
+      const pkg = this.getMockFarmPackageId();
+      if (!farmRegistry) {
+        throw new Error(
+          "buildClaimTx (testnet): missing mock farm registry (mockFarmRegistryId or MOCK_FARM_REGISTRY).",
+        );
+      }
+      const stableTag = normalizeStructTag(stableCoinType);
+      const usdTag = normalizeStructTag(constants.USDC_TYPE);
+      const rewardCoin = tx.moveCall({
+        target: `${pkg}::farm::claim`,
+        typeArguments: [stableTag, usdTag],
+        arguments: [
+          tx.object(farmRegistry),
+          tx.object(constants.STABLE_REGISTRY),
+          tx.object(SUI_CLOCK_OBJECT_ID),
+        ],
+      });
+      if (autoTransfer) {
+        tx.transferObjects([rewardCoin], sender ?? this.sender);
+        return;
+      }
+      return rewardCoin;
+    }
 
     await this.releaseRewards(tx);
 
@@ -261,23 +367,14 @@ export class StableLayerClient {
   }
 
   /**
-   * Preview how much Bucket USDB `sender` would receive from {@link buildClaimTx} with
-   * `autoTransfer: true`, by dry-running the same PTB and summing positive USDB balance
-   * deltas for `sender`.
-   *
-   * Returns `0n` only when the dry-run **succeeds** and there is no positive USDB credit
-   * for `sender` (nothing claimable). **Throws** if the dry-run does not complete as a
-   * successful transaction, if building the PTB or resolving USDB type fails, or if
-   * `simulateTransaction` fails (e.g. network/RPC). Mainnet only; testnet returns `0n`.
+   * Dry-runs {@link buildClaimTx} with `autoTransfer: true` and sums positive USDB balance
+   * deltas for `sender` (mainnet: Bucket USDB; testnet: `MOCK_USDB_TYPE`). Returns `0n` if
+   * the dry-run succeeds but there is no credit; throws otherwise.
    */
   async getClaimRewardUsdbAmount({
     stableCoinType,
     sender,
   }: ClaimRewardUsdbAmountParams): Promise<bigint> {
-    if (this.network === "testnet") {
-      return 0n;
-    }
-
     const tx = new Transaction();
     await this.buildClaimTx({
       tx,
@@ -286,7 +383,12 @@ export class StableLayerClient {
       autoTransfer: true,
     });
 
-    const usdbType = normalizeStructTag(await this.bucketClient.getUsdbCoinType());
+    const usdbType =
+      this.network === "testnet"
+        ? normalizeStructTag(
+            this.mockUsdbCoinType ?? `${this.getMockFarmPackageId()}::usdb::USDB`,
+          )
+        : normalizeStructTag(await this.bucketClient.getUsdbCoinType());
     const res = await this.suiClient.simulateTransaction({
       transaction: tx,
       include: { balanceChanges: true },

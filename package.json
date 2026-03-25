@@ -38,7 +38,9 @@
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
     "dev": "tsc --watch",
     "test": "vitest",
+    "test:e2e:testnet": "vitest run --config vitest.e2e-testnet.config.ts",
     "query-output": "QUERY_OUTPUT=1 vitest run",
+    "sl:mint": "node ./scripts/sl-mint.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -15,12 +15,18 @@ export type Constants = {
   STABLE_VAULT_FARM: string;
   YIELD_USDB_PACKAGE_ID: string;
   STABLE_VAULT_FARM_ENTITY_TYPE: string;
+  MOCK_FARM_PACKAGE_ID: string;
+  MOCK_FARM_REGISTRY: string;
+  MOCK_USDB_TYPE: string;
 };
 
 function getMainnetConstants(): Constants {
   return {
     ...mainnet.MAINNET,
     STABLE_VAULT_FARM_ENTITY_TYPE: mainnet.STABLE_VAULT_FARM_ENTITY_TYPE_MAINNET,
+    MOCK_FARM_PACKAGE_ID: "",
+    MOCK_FARM_REGISTRY: "",
+    MOCK_USDB_TYPE: "",
   };
 }
 
@@ -31,17 +37,11 @@ function getTestnetConstants(): Constants {
   };
 }
 
-/**
- * Returns network-specific constants. Use mainnet for production; testnet requires deployed contracts.
- */
 export function getConstants(network: Network): Constants {
   return network === "testnet" ? getTestnetConstants() : getMainnetConstants();
 }
 
-/**
- * Legacy flat exports for backward compatibility. Default to mainnet.
- * Prefer getConstants(network) when building transactions.
- */
+/** Legacy mainnet flat exports; prefer `getConstants(network)`. */
 export const STABLE_VAULT = mainnet.MAINNET.STABLE_VAULT;
 export const USDC_TYPE = mainnet.MAINNET.USDC_TYPE;
 export const STABLE_LP_TYPE = mainnet.MAINNET.STABLE_LP_TYPE;
