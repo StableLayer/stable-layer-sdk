@@ -84,7 +84,8 @@ export class StableLayerClient {
   }
 
   private getMockFarmEntityType(): string {
-    return `${this.getMockFarmPackageId()}::farm::MockFarmEntity`;
+    const c = this.getConstants();
+    return c.STABLE_VAULT_FARM_ENTITY_TYPE || `${this.getMockFarmPackageId()}::farm::MockFarmEntity`;
   }
 
   async buildMintTx({
@@ -380,7 +381,7 @@ export class StableLayerClient {
 
     const usdbType =
       this.network === "testnet"
-        ? normalizeStructTag(this.mockUsdbCoinType ?? `${this.getMockFarmPackageId()}::usdb::USDB`)
+        ? normalizeStructTag(this.mockUsdbCoinType ?? (this.getConstants().MOCK_USDB_TYPE || `${this.getMockFarmPackageId()}::usdb::USDB`))
         : normalizeStructTag(await this.bucketClient.getUsdbCoinType());
     const res = await this.suiClient.simulateTransaction({
       transaction: tx,
