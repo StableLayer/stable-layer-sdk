@@ -11,6 +11,8 @@ import {
 import * as constants from "../../src/libs/constants.js";
 
 const QUERY_OUTPUT = process.env.QUERY_OUTPUT === "1";
+/** When set, assert manager preview USDB > 0 (depends on live rewards; off in CI by default). */
+const E2E_ASSERT_POSITIVE = process.env.E2E_ASSERT_POSITIVE === "1";
 
 function report(label: string, value: unknown) {
   if (QUERY_OUTPUT) {
@@ -205,7 +207,7 @@ describe("StableLayerSDK", () => {
     );
 
     it(
-      "returns positive USDB preview for TESTUSDC factory manager sender",
+      "returns bigint USDB preview for TESTUSDC factory manager sender",
       { timeout: 45_000 },
       async () => {
         const amount = await sdk.getClaimRewardUsdbAmount({
@@ -217,7 +219,10 @@ describe("StableLayerSDK", () => {
           amount: amount.toString(),
         });
         expect(typeof amount).toBe("bigint");
-        expect(amount > 0n).toBe(true);
+        expect(amount >= 0n).toBe(true);
+        if (E2E_ASSERT_POSITIVE) {
+          expect(amount > 0n).toBe(true);
+        }
       },
     );
   });

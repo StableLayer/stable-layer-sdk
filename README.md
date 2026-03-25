@@ -126,7 +126,7 @@ const result = await suiClient.signAndExecuteTransaction({
 
 ## Testing
 
-`pnpm exec vitest run` hits mainnet RPC from `test/e2e/`. Use `QUERY_OUTPUT=1` or `pnpm query-output` for extra simulation logs. Opt-in live testnet mint/burn: `pnpm test:e2e:testnet` (env vars in `test/e2e/testnet-mint-burn.e2e.ts`).
+`pnpm exec vitest run` hits mainnet RPC from `test/e2e/`. Use `QUERY_OUTPUT=1` or `pnpm query-output` for extra simulation logs. Optional `E2E_ASSERT_POSITIVE=1` asserts a positive USDB preview in the manager `getClaimRewardUsdbAmount` e2e (default only checks type and non-negative amount so CI does not depend on live accrued rewards). Opt-in live testnet mint/burn: `pnpm test:e2e:testnet` (env vars in `test/e2e/testnet-mint-burn.e2e.ts`).
 
 ## API
 
