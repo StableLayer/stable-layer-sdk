@@ -1,4 +1,3 @@
-/** Canonical testnet deployment IDs. Override via `StableLayerConfig` after republishing `mock_farm`. */
 const TESTNET_USDC =
   "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC" as const;
 
@@ -8,8 +7,7 @@ export const MOCK_FARM_PACKAGE_ID_TESTNET =
 export const MOCK_FARM_REGISTRY_TESTNET =
   "0x1e5e466a03c3390e635aff4dcae4c215e9a6ba185df19c893f977357f10e98eb" as const;
 
-export const MOCK_USDB_TYPE_TESTNET =
-  `${MOCK_FARM_PACKAGE_ID_TESTNET}::usdb::USDB` as const;
+export const MOCK_USDB_TYPE_TESTNET = `${MOCK_FARM_PACKAGE_ID_TESTNET}::usdb::USDB` as const;
 
 export const TESTNET = {
   STABLE_LAYER_PACKAGE_ID: "0x3aa25959c431bddf707337753a35147873db01e7b2bb65cf7ff84df1c177b3cb",

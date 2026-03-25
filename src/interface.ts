@@ -15,13 +15,9 @@ export interface StableLayerConfig {
   configObjectId?: string;
   /** Config overrides passed to BucketClient.initialize (e.g. PRICE_SERVICE_ENDPOINT). */
   configOverrides?: Partial<ConfigType>;
-  /** Testnet: `mock_farm` shared `FarmRegistry` object ID. */
+  /** Testnet: optional mock_farm registry, package ID, and mock USDB type for claim preview. */
   mockFarmRegistryId?: string;
-  /**
-   * Testnet: published `mock_farm` package ID (must match `Loan` entity type and `farm::receive` / `pay`).
-   */
   mockFarmPackageId?: string;
-  /** Testnet: mock USDB type for `getClaimRewardUsdbAmount` (default from constants). */
   mockUsdbCoinType?: string;
 }
 
@@ -50,7 +46,6 @@ export interface ClaimTransactionParams {
   autoTransfer?: boolean;
 }
 
-/** Params for `getClaimRewardUsdbAmount` (simulation preview; throws on failed dry-run). */
 export interface ClaimRewardUsdbAmountParams {
   stableCoinType: string;
   sender: string;

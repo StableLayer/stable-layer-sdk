@@ -41,7 +41,6 @@ export function getConstants(network: Network): Constants {
   return network === "testnet" ? getTestnetConstants() : getMainnetConstants();
 }
 
-/** Legacy mainnet flat exports; prefer `getConstants(network)`. */
 export const STABLE_VAULT = mainnet.MAINNET.STABLE_VAULT;
 export const USDC_TYPE = mainnet.MAINNET.USDC_TYPE;
 export const STABLE_LP_TYPE = mainnet.MAINNET.STABLE_LP_TYPE;

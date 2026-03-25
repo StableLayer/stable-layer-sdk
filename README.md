@@ -8,46 +8,24 @@ TypeScript SDK for the [Stable Layer](https://github.com/StableLayer/stable-laye
 npm install stable-layer-sdk @mysten/sui @mysten/bcs
 ```
 
-## Network Support
-
-| Feature                    | Mainnet | Testnet |
-| -------------------------- | ------- | ------- |
-| `buildMintTx`              | ✅      | ✅ mock_farm (`receive`) |
-| `buildBurnTx`              | ✅      | ✅ mock_farm (`pay`) |
-| `buildClaimTx`             | ✅      | ✅ mock_farm |
-| `buildSetMaxSupplyTx`      | ✅      | ✅      |
-| `getTotalSupply`           | ✅      | ✅      |
-| `getTotalSupplyByCoinType` | ✅      | ✅      |
-| `getClaimRewardUsdbAmount` | ✅      | ✅ mock USDB preview |
-| `getConstants(network)`    | ✅      | ✅      |
-
-**Same API for both networks:** pass `network: "mainnet" | "testnet"` to `StableLayerClient.initialize`. Mainnet uses Bucket + `stable_vault_farm`; testnet uses `mock_farm` (`receive` / `pay` / `claim`) with Circle USDC — see [`src/libs/constants.testnet.ts`](src/libs/constants.testnet.ts). After republishing `mock_farm`, set `mockFarmRegistryId`, `mockFarmPackageId`, and optionally `mockUsdbCoinType` on `initialize`.
-
-`getClaimRewardUsdbAmount` dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive **USDB** balance deltas for `sender` (mainnet: Bucket USDB; testnet: `MOCK_USDB_TYPE`). Returns `0n` when the dry-run succeeds but there is no USDB credit for `sender`. **Throws** when the dry-run does not complete successfully, on RPC/network failures, or while building/simulating (callers should `try/catch` or surface errors in the UI).
-
 ## Quick Start
 
 ```typescript
 import { StableLayerClient } from "stable-layer-sdk";
 
-// Mainnet (full support)
 const client = await StableLayerClient.initialize({
-  network: "mainnet",
-  sender: "0xYOUR_ADDRESS",
-});
-
-// Testnet (mock_farm mint/burn/claim; optional registry / USDB type overrides)
-const testnetClient = await StableLayerClient.initialize({
-  network: "testnet",
+  network: "mainnet", // or "testnet" (mint/burn/claim use mock_farm; see src/libs/constants.testnet.ts)
   sender: "0xYOUR_ADDRESS",
 });
 ```
+
+Testnet republish overrides: optional `mockFarmRegistryId`, `mockFarmPackageId`, `mockUsdbCoinType` on `initialize`.
 
 ## Examples
 
 ### Mint Stablecoins
 
-Deposit USDC to mint stablecoins. The SDK builds a transaction that mints via Stable Layer and deposits into the vault farm.
+Deposit USDC to mint stablecoins. The SDK builds a transaction that mints via Stable Layer and deposits into the vault farm (mainnet); on testnet, flow uses `mock_farm::receive` after mint.
 
 ```typescript
 import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
@@ -113,34 +91,6 @@ await client.buildClaimTx({
 });
 ```
 
-### Preview claimable USDB (simulation)
-
-Dry-runs the same PTB as `buildClaimTx` with `autoTransfer: true` and sums positive USDB balance changes for `sender`. Mainnet uses Bucket USDB; testnet uses mock `MOCK_USDB_TYPE`. Use `try/catch` for RPC or dry-run failures.
-
-```typescript
-const usdbBaseUnits = await client.getClaimRewardUsdbAmount({
-  stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
-  sender: "0xYOUR_ADDRESS",
-});
-```
-
-### Set Max Supply
-
-Update the max supply of a brand stablecoin. **Works on mainnet and testnet.**
-
-```typescript
-const tx = new Transaction();
-
-client.buildSetMaxSupplyTx({
-  tx,
-  registry: "0x213f4d58...",
-  factoryCapId: "0x...",
-  maxSupply: BigInt(10_000_000_000000),
-  stableCoinType: "0x6d9fc...::btc_usdc::BtcUSDC",
-  usdCoinType: "0xdba34...::usdc::USDC", // testnet: Circle USDC — see getConstants("testnet").USDC_TYPE
-});
-```
-
 ### Query Total Supply
 
 ```typescript
@@ -176,20 +126,7 @@ const result = await suiClient.signAndExecuteTransaction({
 
 ## Testing
 
-E2E tests live in `test/e2e/` and call mainnet RPC. Run once: `pnpm exec vitest run`.
-
-- **`QUERY_OUTPUT=1`** (or `pnpm query-output`): extra simulation JSON from `report()`.
-
-**Optional live testnet mint → burn** (skipped unless env is set):
-
-```bash
-E2E_TESTNET_MINT_BURN=1 \
-E2E_TESTNET_STABLE_COIN_TYPE='0x...::module::COIN' \
-E2E_TESTNET_PRIVATE_KEY='suiprivkey...' \
-pnpm test:e2e:testnet
-```
-
-See [`test/e2e/testnet-mint-burn.e2e.ts`](test/e2e/testnet-mint-burn.e2e.ts) for optional `E2E_TESTNET_AMOUNT` and mock farm overrides.
+`pnpm exec vitest run` hits mainnet RPC from `test/e2e/`. Use `QUERY_OUTPUT=1` or `pnpm query-output` for extra simulation logs. Opt-in live testnet mint/burn: `pnpm test:e2e:testnet` (env vars in `test/e2e/testnet-mint-burn.e2e.ts`).
 
 ## API
 
@@ -202,30 +139,23 @@ Creates a client with config fetched from chain (via Bucket Protocol SDK). Retur
 | `config.network` | `"mainnet" \| "testnet"` | Sui network            |
 | `config.sender`  | `string`                 | Default sender address |
 
-### Transaction & Query Methods
+### Transaction & query methods
 
-All `build*` methods accept a `tx` (Transaction) and optional `sender`. Set `autoTransfer: false` in mint/burn/claim to get the resulting coin back instead of auto-transferring.
+All methods accept a `tx` (Transaction) and optional `sender` to override the default. Set `autoTransfer: false` to get the resulting coin back instead of auto-transferring.
 
-| Method                           | Description                     | Mainnet | Testnet |
-| -------------------------------- | ------------------------------- | ------- | ------- |
-| `buildMintTx(params)`            | Mint stablecoins from USDC      | ✅      | ✅ mock_farm |
-| `buildBurnTx(params)`            | Burn stablecoins to redeem USDC | ✅      | ✅ mock_farm |
-| `buildClaimTx(params)`           | Claim yield farming rewards     | ✅      | ✅ mock_farm |
-| `buildSetMaxSupplyTx(params)`    | Update max supply of a coin     | ✅      | ✅      |
-| `getTotalSupply()`               | Total supply from registry      | ✅      | ✅      |
-| `getTotalSupplyByCoinType(type)` | Supply for a specific coin      | ✅      | ✅      |
-| `getClaimRewardUsdbAmount(p)`    | Preview USDB from claim (sim)   | ✅      | ✅ mock USDB |
+| Method                             | Description                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `buildMintTx(params)`              | Mint from USDC (testnet: + `mock_farm::receive`)                                             |
+| `buildBurnTx(params)`              | Burn to USDC (testnet: `mock_farm::pay`)                                                     |
+| `buildClaimTx(params)`             | Claim rewards (testnet: `mock_farm::claim`)                                                  |
+| `buildSetMaxSupplyTx(params)`      | Update max supply                                                                            |
+| `getClaimRewardUsdbAmount(params)` | Simulate `buildClaimTx`; sum USDB credit (testnet: mock USDB type) — throws if dry-run fails |
+| `getTotalSupply()`                 | Total supply from registry                                                                   |
+| `getTotalSupplyByCoinType(type)`   | Supply for one coin type                                                                     |
 
-### `getConstants(network)`
+### `getConstants(network)` / `StableLayerClient.getConstants`
 
-Get network-specific protocol constants (registry, package IDs, etc.) without initializing a client.
-
-```typescript
-import { getConstants } from "stable-layer-sdk";
-
-const mainnet = getConstants("mainnet");
-const testnet = getConstants("testnet");
-```
+Returns protocol object IDs and type strings for `mainnet` or `testnet` without building a client.
 
 ## License
 

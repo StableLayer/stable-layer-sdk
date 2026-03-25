@@ -366,11 +366,6 @@ export class StableLayerClient {
     }
   }
 
-  /**
-   * Dry-runs {@link buildClaimTx} with `autoTransfer: true` and sums positive USDB balance
-   * deltas for `sender` (mainnet: Bucket USDB; testnet: `MOCK_USDB_TYPE`). Returns `0n` if
-   * the dry-run succeeds but there is no credit; throws otherwise.
-   */
   async getClaimRewardUsdbAmount({
     stableCoinType,
     sender,
@@ -385,9 +380,7 @@ export class StableLayerClient {
 
     const usdbType =
       this.network === "testnet"
-        ? normalizeStructTag(
-            this.mockUsdbCoinType ?? `${this.getMockFarmPackageId()}::usdb::USDB`,
-          )
+        ? normalizeStructTag(this.mockUsdbCoinType ?? `${this.getMockFarmPackageId()}::usdb::USDB`)
         : normalizeStructTag(await this.bucketClient.getUsdbCoinType());
     const res = await this.suiClient.simulateTransaction({
       transaction: tx,
@@ -534,7 +527,4 @@ export {
   STABLE_REGISTRY_MAINNET_ALT,
   STABLE_LAYER_PACKAGE_MAINNET_ALT,
 } from "./libs/constants.mainnet.js";
-export type {
-  ClaimRewardUsdbAmountParams,
-  SetMaxSupplyTransactionParams,
-} from "./interface.js";
+export type { ClaimRewardUsdbAmountParams, SetMaxSupplyTransactionParams } from "./interface.js";

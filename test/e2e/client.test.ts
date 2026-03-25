@@ -2,12 +2,12 @@ import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { StableLayerClient } from "../../src/index.js";
 import {
   BurnTransactionParams,
   ClaimTransactionParams,
   MintTransactionParams,
 } from "../../src/interface.js";
-import { StableLayerClient } from "../../src/index.js";
 import * as constants from "../../src/libs/constants.js";
 
 const QUERY_OUTPUT = process.env.QUERY_OUTPUT === "1";
